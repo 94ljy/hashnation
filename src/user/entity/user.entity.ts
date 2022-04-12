@@ -1,9 +1,20 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
+import { DonationEntity } from '../../donation/entity/donation.entity'
 
-@Entity()
+@Entity({
+    name: 'user',
+})
 export class UserEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string
+
+    @Column({
+        type: 'varchar',
+        length: 44,
+        nullable: false,
+        unique: true,
+    })
+    publicKey: string
 
     @Column({
         type: 'varchar',
@@ -25,11 +36,6 @@ export class UserEntity {
     })
     lastLoginAt: Date
 
-    @Column({
-        type: 'varchar',
-        length: 44,
-        nullable: false,
-        unique: true,
-    })
-    publicKey: string
+    @OneToMany((type) => DonationEntity, (donation) => donation.to)
+    donations: DonationEntity[]
 }

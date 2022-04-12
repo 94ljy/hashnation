@@ -1,4 +1,9 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common'
+import {
+    BadRequestException,
+    Injectable,
+    UnauthorizedException,
+} from '@nestjs/common'
+import { JwtService } from '@nestjs/jwt'
 import { PublicKey } from '@solana/web3.js'
 import base58 from 'bs58'
 import moment from 'moment'
@@ -10,8 +15,17 @@ import { LoginMessage } from './dto/login.dto'
 export class AuthService {
     constructor(private readonly userService: UserService) {}
 
-    async signup(username: string, publicKey: string) {
-        await this.userService.createUser(username, publicKey)
+    async signup(publicKey: string, signature: string) {
+        if (
+            !nacl.sign.detached.verify(
+                new TextEncoder().encode(publicKey),
+                base58.decode(signature),
+                base58.decode(publicKey),
+            )
+        )
+            throw new BadRequestException('Invalid signature')
+
+        await this.userService.createUser(publicKey)
     }
 
     async validateUser(message: string, signature: string) {
@@ -44,6 +58,8 @@ export class AuthService {
 
         if (!user) throw new UnauthorizedException()
 
-        return user
+        return {
+            id: user.id,
+        }
     }
 }

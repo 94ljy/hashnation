@@ -10,10 +10,10 @@ export class UserService {
         private readonly userRopository: Repository<UserEntity>,
     ) {}
 
-    async createUser(username: string, publicKey: string) {
+    async createUser(publicKey: string) {
         const newUser = new UserEntity()
 
-        newUser.username = username
+        newUser.username = publicKey
         newUser.publicKey = publicKey
         newUser.createdAt = new Date()
 
@@ -24,10 +24,6 @@ export class UserService {
         const user = await this.userRopository.findOne({
             publicKey: publicKey,
         })
-
-        if (!user) {
-            throw new NotFoundException('user not found')
-        }
 
         return {
             id: user.id,

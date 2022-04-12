@@ -1,10 +1,14 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { DonationEntity } from './entity/donation.entity'
+import { DonationEntity } from '../entity/donation.entity'
 import { clusterApiUrl, Connection, SystemProgram } from '@solana/web3.js'
 import base58 from 'bs58'
 import { ns64, struct, u32 } from '@solana/buffer-layout'
+import nacl from 'tweetnacl'
+import { RecipientEntity } from '../entity/recipient.entity'
+import { UserService } from '../../user/user.service'
+import { UserEntity } from '../../user/entity/user.entity'
 
 const TRANSFER_INSTRUCTION_INDEX = 2
 
@@ -14,16 +18,18 @@ const ins = struct<{ instruction: number; lamports: number }>([
 ])
 
 @Injectable()
-export class DonationService {
+export class DonateService {
     private readonly solanaConn: Connection
     constructor(
         @InjectRepository(DonationEntity)
         private readonly donationRepository: Repository<DonationEntity>,
+        private readonly userService: UserService,
     ) {
         this.solanaConn = new Connection(clusterApiUrl('devnet'))
     }
 
-    async donation(txSignature: string, message: string) {
+    // TODO: add invalid to public key
+    async donation(txSignature: string, message: string, signature: string) {
         const txResponse = await this.solanaConn.getTransaction(txSignature)
 
         // tx not found
@@ -53,27 +59,36 @@ export class DonationService {
         if (parsedData.instruction !== TRANSFER_INSTRUCTION_INDEX)
             throw new BadRequestException('Invalid instruction index')
 
-        const from =
-            txResponse.transaction.message.accountKeys[
-                instruction.accounts[0]
-            ].toString()
+        const fromKey =
+            txResponse.transaction.message.accountKeys[instruction.accounts[0]]
 
-        const to =
-            txResponse.transaction.message.accountKeys[
-                instruction.accounts[1]
-            ].toString()
+        const toKey =
+            txResponse.transaction.message.accountKeys[instruction.accounts[1]]
+
+        if (
+            !nacl.sign.detached.verify(
+                new TextEncoder().encode(txSignature),
+                base58.decode(signature),
+                fromKey.toBuffer(),
+            )
+        )
+            throw new BadRequestException('Invalid signature')
 
         const lamports = parsedData.lamports
+
+        const to = await this.userService.getUser(toKey.toString())
+
+        const toEntity = new UserEntity()
+        toEntity.id = to.id
 
         const donation = new DonationEntity()
         donation.txSignature = txSignature
         donation.message = message
         donation.createdAt = new Date()
-        donation.from = from.toString()
-        donation.to = to.toString()
+        donation.from = fromKey.toString()
         donation.lamports = lamports
-        donation.isConfirmed = false
         donation.isBrodcasted = false
+        donation.to = toEntity
 
         await this.donationRepository.save(donation)
     }

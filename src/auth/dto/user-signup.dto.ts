@@ -1,4 +1,4 @@
 export class UserSignupDto {
-    username: string
     publicKey: string
+    signature: string
 }

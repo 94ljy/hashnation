@@ -10,6 +10,8 @@ import {
     SystemProgram,
     Transaction,
 } from '@solana/web3.js'
+import nacl from 'tweetnacl'
+import base58 from 'bs58'
 
 const key = Keypair.fromSecretKey(
     Buffer.from([
@@ -45,6 +47,16 @@ describe('AppController (e2e)', () => {
         solanaConn = new Connection(clusterApiUrl('devnet'))
     })
 
+    // it('/donation/recipient (POST)', async () => {
+    //     return request(app.getHttpServer())
+    //         .post('/donation/recipient')
+    //         .send({
+    //             address: key2.publicKey.toString(),
+    //             name: 'test2',
+    //         })
+    //         .expect(201)
+    // })
+
     it('/donation (POST)', async () => {
         const trans = new Transaction()
 
@@ -56,15 +68,21 @@ describe('AppController (e2e)', () => {
             }),
         )
 
-        const sig = await solanaConn.sendTransaction(trans, [key])
+        const txSig = await solanaConn.sendTransaction(trans, [key])
 
-        await solanaConn.confirmTransaction(sig)
+        await solanaConn.confirmTransaction(txSig)
+
+        const sig = nacl.sign.detached(
+            new TextEncoder().encode(txSig),
+            key.secretKey,
+        )
 
         return request(app.getHttpServer())
             .post('/donation')
             .send({
-                txSignature: sig,
+                txSignature: txSig,
                 message: 'testt',
+                signature: base58.encode(sig),
             })
             .expect(201)
     }, 60000)

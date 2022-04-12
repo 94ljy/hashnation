@@ -1,6 +1,9 @@
-import { Column, Entity, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm'
+import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
+import { UserEntity } from '../../user/entity/user.entity'
 
-@Entity()
+@Entity({
+    name: 'donation',
+})
 export class DonationEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string
@@ -29,12 +32,6 @@ export class DonationEntity {
         type: 'varchar',
         nullable: false,
     })
-    to: string
-
-    @Column({
-        type: 'varchar',
-        nullable: false,
-    })
     message: string
 
     @Column({
@@ -43,12 +40,12 @@ export class DonationEntity {
     })
     lamports: number
 
-    @Column({
-        type: 'boolean',
-        nullable: false,
-        default: false,
-    })
-    isConfirmed: boolean
+    // @Column({
+    //     type: 'boolean',
+    //     nullable: false,
+    //     default: false,
+    // })
+    // isConfirmed: boolean
 
     @Column({
         type: 'boolean',
@@ -56,4 +53,7 @@ export class DonationEntity {
         default: false,
     })
     isBrodcasted: boolean
+
+    @ManyToOne((type) => UserEntity, (user) => user.donations)
+    to: UserEntity
 }
