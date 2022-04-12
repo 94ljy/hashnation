@@ -2,8 +2,8 @@ import { Column, Entity, PrimaryColumn, PrimaryGeneratedColumn } from 'typeorm'
 
 @Entity()
 export class DonationEntity {
-    @PrimaryGeneratedColumn()
-    id: number
+    @PrimaryGeneratedColumn('uuid')
+    id: string
 
     @Column({
         type: 'varchar',
@@ -11,13 +11,31 @@ export class DonationEntity {
         nullable: false,
         unique: true,
     })
-    signature: string
+    txSignature: string
 
     @Column({
         type: 'datetime',
         nullable: false,
     })
     createdAt: Date
+
+    @Column({
+        type: 'varchar',
+        nullable: false,
+    })
+    from: string
+
+    @Column({
+        type: 'varchar',
+        nullable: false,
+    })
+    to: string
+
+    @Column({
+        type: 'varchar',
+        nullable: false,
+    })
+    message: string
 
     @Column({
         type: 'integer',

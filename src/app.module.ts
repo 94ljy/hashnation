@@ -10,7 +10,7 @@ import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
         TypeOrmModule.forRoot({
             type: 'sqlite',
             database: 'db.sqlite',
-            entities: ['dist/**/*.entity{.ts,.js}'],
+            entities: [__dirname + '/**/*.entity{.ts,.js}'],
             namingStrategy: new SnakeNamingStrategy(),
             synchronize: true,
         }),
