@@ -12,6 +12,7 @@ import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
             database: 'db.sqlite',
             entities: [__dirname + '/**/*.entity{.ts,.js}'],
             namingStrategy: new SnakeNamingStrategy(),
+            keepConnectionAlive: true,
             synchronize: true,
         }),
         UserModule,

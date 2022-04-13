@@ -20,8 +20,19 @@ export class UserService {
         await this.userRopository.save(newUser)
     }
 
+    async getUserById(id: string) {
+        const user = await this.userRopository.findOneOrFail({
+            id: id,
+        })
+
+        return {
+            id: user.id,
+            publicKey: user.publicKey,
+        }
+    }
+
     async getUser(publicKey: string) {
-        const user = await this.userRopository.findOne({
+        const user = await this.userRopository.findOneOrFail({
             publicKey: publicKey,
         })
 

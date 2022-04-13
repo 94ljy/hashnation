@@ -6,13 +6,12 @@ import { clusterApiUrl, Connection, SystemProgram } from '@solana/web3.js'
 import base58 from 'bs58'
 import { ns64, struct, u32 } from '@solana/buffer-layout'
 import nacl from 'tweetnacl'
-import { RecipientEntity } from '../entity/recipient.entity'
 import { UserService } from '../../user/user.service'
 import { UserEntity } from '../../user/entity/user.entity'
 
 const TRANSFER_INSTRUCTION_INDEX = 2
 
-const ins = struct<{ instruction: number; lamports: number }>([
+const TRANSFER_INSTRUCTION = struct<{ instruction: number; lamports: number }>([
     u32('instruction'),
     ns64('lamports'),
 ])
@@ -29,7 +28,7 @@ export class DonateService {
     }
 
     // TODO: add invalid to public key
-    async donation(txSignature: string, message: string, signature: string) {
+    async donate(txSignature: string, message: string, signature: string) {
         const txResponse = await this.solanaConn.getTransaction(txSignature)
 
         // tx not found
@@ -53,7 +52,9 @@ export class DonateService {
         if (!SystemProgram.programId.equals(instructionProgramId))
             throw new BadRequestException('Invalid programId')
 
-        const parsedData = ins.decode(base58.decode(instruction.data))
+        const parsedData = TRANSFER_INSTRUCTION.decode(
+            base58.decode(instruction.data),
+        )
 
         // tx not transfer instruction
         if (parsedData.instruction !== TRANSFER_INSTRUCTION_INDEX)
@@ -79,6 +80,7 @@ export class DonateService {
         const to = await this.userService.getUser(toKey.toString())
 
         const toEntity = new UserEntity()
+
         toEntity.id = to.id
 
         const donation = new DonationEntity()
