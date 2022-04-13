@@ -1,3 +1,3 @@
 export interface AuththenticatedUser {
-    address: string
+    id: string
 }

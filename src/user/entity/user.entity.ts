@@ -1,6 +1,8 @@
 import { Column, Entity, OneToMany, PrimaryGeneratedColumn } from 'typeorm'
 import { DonationEntity } from '../../donation/entity/donation.entity'
 
+export type userUniqueKeys = keyof Pick<UserEntity, 'id' | 'publicKey'>
+
 @Entity({
     name: 'user',
 })

@@ -54,6 +54,9 @@ export class DonationEntity {
     })
     isBrodcasted: boolean
 
+    @Column()
+    toId: string
+
     @ManyToOne((type) => UserEntity, (user) => user.donations)
     to: UserEntity
 }

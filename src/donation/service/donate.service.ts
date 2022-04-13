@@ -2,7 +2,12 @@ import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { DonationEntity } from '../entity/donation.entity'
-import { clusterApiUrl, Connection, SystemProgram } from '@solana/web3.js'
+import {
+    clusterApiUrl,
+    Connection,
+    SystemProgram,
+    Transaction,
+} from '@solana/web3.js'
 import base58 from 'bs58'
 import { ns64, struct, u32 } from '@solana/buffer-layout'
 import nacl from 'tweetnacl'
@@ -17,7 +22,7 @@ const TRANSFER_INSTRUCTION = struct<{ instruction: number; lamports: number }>([
 ])
 
 @Injectable()
-export class DonateService {
+export class DonorService {
     private readonly solanaConn: Connection
     constructor(
         @InjectRepository(DonationEntity)
@@ -25,6 +30,14 @@ export class DonateService {
         private readonly userService: UserService,
     ) {
         this.solanaConn = new Connection(clusterApiUrl('devnet'))
+    }
+
+    async donate2(rawTransaction: string, message: string) {
+        const transaction = Transaction.from(base58.decode(rawTransaction))
+
+        if (transaction.instructions.length !== 1) {
+            throw new BadRequestException('Invalid tx')
+        }
     }
 
     // TODO: add invalid to public key
@@ -77,11 +90,7 @@ export class DonateService {
 
         const lamports = parsedData.lamports
 
-        const to = await this.userService.getUser(toKey.toString())
-
-        const toEntity = new UserEntity()
-
-        toEntity.id = to.id
+        const to = await this.userService.getUser('publicKey', toKey.toString())
 
         const donation = new DonationEntity()
         donation.txSignature = txSignature
@@ -90,7 +99,7 @@ export class DonateService {
         donation.from = fromKey.toString()
         donation.lamports = lamports
         donation.isBrodcasted = false
-        donation.to = toEntity
+        donation.toId = to.id
 
         await this.donationRepository.save(donation)
     }

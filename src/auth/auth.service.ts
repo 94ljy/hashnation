@@ -28,6 +28,20 @@ export class AuthService {
         await this.userService.createUser(publicKey)
     }
 
+    async checkPulbicKey(publicKey: string) {
+        try {
+            const user = await this.userService.getUser('publicKey', publicKey)
+
+            return {
+                used: true,
+            }
+        } catch (e) {
+            return {
+                used: false,
+            }
+        }
+    }
+
     async validateUser(message: string, signature: string) {
         const paresdMessage = JSON.parse(message) as LoginMessage
 
@@ -54,9 +68,10 @@ export class AuthService {
         )
             throw new UnauthorizedException()
 
-        const user = await this.userService.getUser(paresdMessage.publicKey)
-
-        if (!user) throw new UnauthorizedException()
+        const user = await this.userService.getUser(
+            'publicKey',
+            paresdMessage.publicKey,
+        )
 
         return {
             id: user.id,

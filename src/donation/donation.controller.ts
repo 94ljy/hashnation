@@ -1,51 +1,26 @@
-import {
-    ArgumentMetadata,
-    BadRequestException,
-    Body,
-    Controller,
-    Get,
-    Injectable,
-    PipeTransform,
-    Post,
-    Req,
-    UsePipes,
-} from '@nestjs/common'
-import { DonateService } from './service/donate.service'
-import { CreateRecipientDto } from './dto/create-recipient.dto'
+import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common'
+import { DonorService } from './service/donate.service'
 import { DonationDto } from './dto/donation.dto'
-import nacl from 'tweetnacl'
-import base58 from 'bs58'
 import { DonationService } from './service/donation.service'
+import { Public } from '../auth/guard/auth.guard'
+import { DonationBroadcastSuccessDto } from './dto/brodcast-success.dto'
 
 @Controller('/donation')
 export class DonationController {
     constructor(
-        private readonly donateService: DonateService,
+        private readonly donorService: DonorService,
         private readonly donationService: DonationService,
     ) {}
 
-    // @Post('/recipient')
-    // async createRecipient(@Body() createRecipientDto: CreateRecipientDto) {
-    //     createRecipientDto.signature
+    @Get('/:publicKey')
+    async getDonationInfo(@Param('publicKey') publicKey: string) {
+        return this.donationService.getDonationInfo(publicKey)
+    }
 
-    //     if (
-    //         !nacl.sign.detached.verify(
-    //             new TextEncoder().encode(createRecipientDto.name),
-    //             base58.decode(createRecipientDto.signature),
-    //             new TextEncoder().encode(createRecipientDto.address),
-    //         )
-    //     )
-    //         throw new BadRequestException('Invalid signature')
-
-    //     await this.recipientService.create(
-    //         createRecipientDto.address,
-    //         createRecipientDto.name,
-    //     )
-    // }
-
+    @Public()
     @Post('/donate')
     async donate(@Body() donationDto: DonationDto) {
-        return await this.donateService.donate(
+        return await this.donorService.donate(
             donationDto.txSignature,
             donationDto.message,
             donationDto.signature,
@@ -55,9 +30,18 @@ export class DonationController {
     @Get('')
     async getDonation(@Req() req: any) {
         const userId = req.user.id
-
-        console.log(userId)
-
         return await this.donationService.getDonation(userId)
+    }
+
+    @Post('/broadcast/success')
+    async donationBrodcastSuccess(
+        @Req() req: any,
+        @Body() donationBroadcastSuccessDto: DonationBroadcastSuccessDto,
+    ) {
+        const userId = req.user.id
+        return await this.donationService.donationBrodcastSuccess(
+            userId,
+            donationBroadcastSuccessDto.donationId,
+        )
     }
 }

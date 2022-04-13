@@ -13,6 +13,11 @@ import {
 import nacl from 'tweetnacl'
 import base58 from 'bs58'
 import { equal } from 'assert'
+import session from 'express-session'
+import passport from 'passport'
+import FileStore from 'session-file-store'
+
+const f = FileStore(session)
 
 // const key = Keypair.fromSecretKey(
 //     Buffer.from([
@@ -45,6 +50,25 @@ describe('AppController (e2e)', () => {
         }).compile()
 
         app = moduleFixture.createNestApplication()
+
+        app.use(
+            session({
+                secret: 'secret_test',
+                resave: true,
+                saveUninitialized: true,
+                cookie: {
+                    maxAge: 1000 * 60 * 60 * 24,
+                },
+                // store: new RedisStore({ client: client }),
+                store: new f({
+                    path: './tmp/sessions',
+                }),
+            }),
+        )
+
+        app.use(passport.initialize())
+        app.use(passport.session())
+
         await app.init()
 
         solanaConn = new Connection(clusterApiUrl('devnet'))
@@ -85,7 +109,7 @@ describe('AppController (e2e)', () => {
     })
 
     describe('signin', () => {
-        it('/auth/signin (POST)', (done) => {
+        it('/auth/signin (POST)', async () => {
             const publicKey = newKey.publicKey.toString()
             const timestamp = Date.now()
 
@@ -94,7 +118,7 @@ describe('AppController (e2e)', () => {
                 timestamp,
             })
 
-            agent
+            await agent
                 .post('/auth/signin')
                 .send({
                     message: message,
@@ -105,7 +129,10 @@ describe('AppController (e2e)', () => {
                         ),
                     ),
                 })
-                .expect(201, done)
+                .expect(201)
+                .then()
+
+            return agent.get('/auth/me').expect(200).then()
         })
     })
 
@@ -147,13 +174,25 @@ describe('AppController (e2e)', () => {
                     ),
                 })
                 .expect(201)
+                .then()
+
+            let donationId = ''
 
             await agent
                 .get('/donation')
                 .expect(200)
                 .then((res) => {
                     equal(res.body.txSignature, txSig)
+                    donationId = res.body.id
                 })
+
+            await agent
+                .post('/donation/broadcast/success')
+                .send({
+                    donationId,
+                })
+                .expect(201)
+                .then()
         }, 60000)
     })
 

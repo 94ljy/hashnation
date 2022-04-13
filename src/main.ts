@@ -4,6 +4,9 @@ import { AppModule } from './app.module'
 import CookieParser from 'cookie-parser'
 import session from 'express-session'
 import passport from 'passport'
+import FileStore from 'session-file-store'
+
+const f = FileStore(session)
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule)
@@ -16,14 +19,18 @@ async function bootstrap() {
     app.use(
         session({
             secret: 'secret_test',
-            resave: false,
-            saveUninitialized: false,
-            // cookie: {
-            //     maxAge: 1000 * 60 * 60 * 24,
-            // },
+            resave: true,
+            saveUninitialized: true,
+            cookie: {
+                maxAge: 1000 * 60 * 60 * 24,
+            },
             // store: new RedisStore({ client: client }),
+            store: new f({
+                path: './tmp/sessions',
+            }),
         }),
     )
+
     app.use(passport.initialize())
     app.use(passport.session())
 

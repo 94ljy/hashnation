@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { UserEntity } from './entity/user.entity'
+import { UserEntity, userUniqueKeys } from './entity/user.entity'
 
 @Injectable()
 export class UserService {
@@ -20,25 +20,39 @@ export class UserService {
         await this.userRopository.save(newUser)
     }
 
-    async getUserById(id: string) {
+    async getUser(key: userUniqueKeys, value: string) {
         const user = await this.userRopository.findOneOrFail({
-            id: id,
+            [key]: value,
         })
 
         return {
             id: user.id,
             publicKey: user.publicKey,
+            username: user.username,
+            createdAt: user.createdAt,
+            lastLoginAt: user.lastLoginAt,
         }
     }
 
-    async getUser(publicKey: string) {
-        const user = await this.userRopository.findOneOrFail({
-            publicKey: publicKey,
-        })
+    // async getUserById(id: string) {
+    //     const user = await this.userRopository.findOneOrFail({
+    //         id: id,
+    //     })
 
-        return {
-            id: user.id,
-            publicKey: user.publicKey,
-        }
-    }
+    //     return {
+    //         id: user.id,
+    //         publicKey: user.publicKey,
+    //     }
+    // }
+
+    // async getUser(publicKey: string) {
+    //     const user = await this.userRopository.findOneOrFail({
+    //         publicKey: publicKey,
+    //     })
+
+    //     return {
+    //         id: user.id,
+    //         publicKey: user.publicKey,
+    //     }
+    // }
 }

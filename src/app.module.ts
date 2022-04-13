@@ -4,6 +4,8 @@ import { UserModule } from './user/user.module'
 import { AuthModule } from './auth/auth.module'
 import { DonationModule } from './donation/donation.module'
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
+import { APP_GUARD } from '@nestjs/core'
+import { AuthenticatedGuard } from './auth/guard/auth.guard'
 
 @Module({
     imports: [
@@ -20,6 +22,6 @@ import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
         DonationModule,
     ],
     controllers: [],
-    providers: [],
+    providers: [{ provide: APP_GUARD, useClass: AuthenticatedGuard }],
 })
 export class AppModule {}

@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { UserService } from '../../user/user.service'
 import { Repository } from 'typeorm'
@@ -13,7 +13,7 @@ export class DonationService {
     ) {}
 
     async getDonation(userId: string) {
-        const user = await this.userService.getUserById(userId)
+        const user = await this.userService.getUser('id', userId)
 
         const donation = await this.donationRepository.findOne({
             where: {
@@ -27,6 +27,35 @@ export class DonationService {
             },
         })
 
+        if (!donation) throw new NotFoundException()
+
         return donation
+    }
+
+    async getDonationInfo(publicKey) {
+        const user = await this.userService.getUser('publicKey', publicKey)
+
+        return {
+            publicKey: user.publicKey,
+            username: user.username,
+        }
+    }
+
+    async donationBrodcastSuccess(userId: string, donationId: string) {
+        const result = await this.donationRepository
+            .createQueryBuilder()
+            .update()
+            .set({
+                isBrodcasted: true,
+            })
+            .where('id = :id AND toId = :toId', {
+                id: donationId,
+                toId: userId,
+            })
+            .execute()
+
+        if (result.affected === 0) {
+            throw new NotFoundException()
+        }
     }
 }
