@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common'
-import { DonorService } from './service/donate.service'
+import { DonorService } from './service/donor.service'
 import { DonationController } from './donation.controller'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { DonationEntity } from './entity/donation.entity'

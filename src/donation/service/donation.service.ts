@@ -32,14 +32,14 @@ export class DonationService {
         return donation
     }
 
-    async getDonationInfo(publicKey) {
-        const user = await this.userService.getUser('publicKey', publicKey)
+    // async getUserInfo(publicKey: string) {
+    //     const user = await this.userService.getUser('publicKey', publicKey)
 
-        return {
-            publicKey: user.publicKey,
-            username: user.username,
-        }
-    }
+    //     return {
+    //         publicKey: user.publicKey,
+    //         username: user.username,
+    //     }
+    // }
 
     async donationBrodcastSuccess(userId: string, donationId: string) {
         const result = await this.donationRepository

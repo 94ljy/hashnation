@@ -1,6 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { DonationController } from './donation.controller'
-import { DonorService } from './service/donate.service'
+import { DonorService } from './service/donor.service'
 
 describe('DonationController', () => {
     let controller: DonationController

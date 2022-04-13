@@ -1,6 +1,12 @@
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
 import { UserEntity } from '../../user/entity/user.entity'
 
+export enum DonationStatus {
+    PENDING = 'PENDING',
+    APPROVED = 'APPROVED',
+    REJECTED = 'REJECTED',
+}
+
 @Entity({
     name: 'donation',
 })
@@ -40,12 +46,12 @@ export class DonationEntity {
     })
     lamports: number
 
-    // @Column({
-    //     type: 'boolean',
-    //     nullable: false,
-    //     default: false,
-    // })
-    // isConfirmed: boolean
+    @Column({
+        type: 'integer',
+        nullable: false,
+        default: DonationStatus.PENDING,
+    })
+    status: DonationStatus
 
     @Column({
         type: 'boolean',

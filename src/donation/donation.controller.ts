@@ -1,9 +1,10 @@
 import { Body, Controller, Get, Param, Post, Req } from '@nestjs/common'
-import { DonorService } from './service/donate.service'
+import { DonorService } from './service/donor.service'
 import { DonationDto } from './dto/donation.dto'
 import { DonationService } from './service/donation.service'
 import { Public } from '../auth/guard/auth.guard'
 import { DonationBroadcastSuccessDto } from './dto/brodcast-success.dto'
+import { DonateDto } from './dto/donate.dto'
 
 @Controller('/donation')
 export class DonationController {
@@ -12,19 +13,18 @@ export class DonationController {
         private readonly donationService: DonationService,
     ) {}
 
-    @Get('/:publicKey')
-    async getDonationInfo(@Param('publicKey') publicKey: string) {
-        return this.donationService.getDonationInfo(publicKey)
-    }
-
     @Public()
     @Post('/donate')
-    async donate(@Body() donationDto: DonationDto) {
+    async donate(@Body() donateDto: DonateDto) {
         return await this.donorService.donate(
-            donationDto.txSignature,
-            donationDto.message,
-            donationDto.signature,
+            donateDto.rawTransaction,
+            donateDto.message,
         )
+    }
+
+    @Get('/creater/:publicKey')
+    async getDonationInfo(@Param('publicKey') publicKey: string) {
+        return this.donorService.getCreaterInfo(publicKey)
     }
 
     @Get('')

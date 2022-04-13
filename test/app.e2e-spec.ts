@@ -157,42 +157,49 @@ describe('AppController (e2e)', () => {
                 }),
             )
 
-            const txSig = await solanaConn.sendTransaction(trans, [from])
+            trans.recentBlockhash = (
+                await solanaConn.getLatestBlockhash()
+            ).blockhash
+            trans.feePayer = from.publicKey
 
-            await solanaConn.confirmTransaction(txSig)
+            trans.sign(from)
+
+            const rawTx = base58.encode(trans.serialize())
+
+            // const txSig = await solanaConn.sendTransaction(trans, [from])
+
+            // await solanaConn.confirmTransaction(txSig)
+
+            let tx = ''
 
             await request(app.getHttpServer())
                 .post('/donation/donate')
                 .send({
-                    txSignature: txSig,
+                    rawTransaction: rawTx,
                     message: 'testt',
-                    signature: base58.encode(
-                        nacl.sign.detached(
-                            new TextEncoder().encode(txSig),
-                            from.secretKey,
-                        ),
-                    ),
                 })
                 .expect(201)
-                .then()
-
-            let donationId = ''
-
-            await agent
-                .get('/donation')
-                .expect(200)
                 .then((res) => {
-                    equal(res.body.txSignature, txSig)
-                    donationId = res.body.id
+                    tx = res.body.tx
                 })
 
-            await agent
-                .post('/donation/broadcast/success')
-                .send({
-                    donationId,
-                })
-                .expect(201)
-                .then()
+            // let donationId = ''
+
+            // await agent
+            //     .get('/donation')
+            //     .expect(200)
+            //     .then((res) => {
+            //         equal(res.body.txSignature, tx)
+            //         donationId = res.body.id
+            //     })
+
+            // await agent
+            //     .post('/donation/broadcast/success')
+            //     .send({
+            //         donationId,
+            //     })
+            //     .expect(201)
+            //     .then()
         }, 60000)
     })
 
