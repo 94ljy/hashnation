@@ -22,16 +22,23 @@ export class DonationController {
         )
     }
 
-    @Get('/creater/:publicKey')
+    @Public()
+    @Get('/creator/:publicKey')
     async getDonationInfo(@Param('publicKey') publicKey: string) {
-        return this.donorService.getCreaterInfo(publicKey)
+        return this.donorService.getCreatorInfoByPublicKey(publicKey)
     }
 
     @Get('')
-    async getDonation(@Req() req: any) {
+    async getD(@Req() req: any) {
         const userId = req.user.id
-        return await this.donationService.getDonation(userId)
+        return await this.donationService.getD(userId)
     }
+
+    // @Get('')
+    // async getDonation(@Req() req: any) {
+    //     const userId = req.user.id
+    //     return await this.donationService.getDonation(userId)
+    // }
 
     @Post('/broadcast/success')
     async donationBrodcastSuccess(

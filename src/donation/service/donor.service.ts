@@ -95,7 +95,7 @@ export class DonorService {
         }
     }
 
-    async getCreaterInfo(publicKey: string) {
+    async getCreatorInfoByPublicKey(publicKey: string) {
         const user = await this.userService.getUser('publicKey', publicKey)
 
         return {

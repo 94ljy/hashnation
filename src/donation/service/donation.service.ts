@@ -32,6 +32,15 @@ export class DonationService {
         return donation
     }
 
+    async getD(userId: string) {
+        const user = await this.userService.getUser('id', userId)
+
+        return {
+            username: user.username,
+            donationUrl: `http://localhost:8080/donate/${user.publicKey}`,
+        }
+    }
+
     // async getUserInfo(publicKey: string) {
     //     const user = await this.userService.getUser('publicKey', publicKey)
 
