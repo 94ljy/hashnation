@@ -5,6 +5,8 @@ import { DonationService } from './service/donation.service'
 import { Public } from '../auth/guard/auth.guard'
 import { DonationBroadcastSuccessDto } from './dto/brodcast-success.dto'
 import { DonateDto } from './dto/donate.dto'
+import { User } from '../common/user.decorator'
+import { AuthenticatedUser } from 'src/common/authenticated.user'
 
 @Controller('/donation')
 export class DonationController {
@@ -15,8 +17,12 @@ export class DonationController {
 
     @Public()
     @Post('/donate')
-    async donate(@Body() donateDto: DonateDto) {
+    async donate(
+        @User() user: AuthenticatedUser,
+        @Body() donateDto: DonateDto,
+    ) {
         return await this.donorService.donate(
+            user.id,
             donateDto.rawTransaction,
             donateDto.message,
         )
@@ -28,11 +34,11 @@ export class DonationController {
         return this.donorService.getCreatorInfoByPublicKey(publicKey)
     }
 
-    @Get('')
-    async getD(@Req() req: any) {
-        const userId = req.user.id
-        return await this.donationService.getD(userId)
-    }
+    // @Get('')
+    // async getD(@Req() req: any) {
+    //     const userId = req.user.id
+    //     return await this.donationService.getD(userId)
+    // }
 
     // @Get('')
     // async getDonation(@Req() req: any) {

@@ -37,6 +37,7 @@
         "class-validator": "^0.13.2",
         "cookie-parser": "^1.4.6",
         "express-session": "^1.17.2",
+        "firebase": "^9.6.11",
         "moment": "^2.29.2",
         "passport": "^0.5.2",
         "passport-jwt": "^4.0.0",

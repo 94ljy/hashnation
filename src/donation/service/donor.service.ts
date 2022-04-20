@@ -11,8 +11,7 @@ import {
 import base58 from 'bs58'
 import { ns64, struct, u32 } from '@solana/buffer-layout'
 import nacl from 'tweetnacl'
-import { UserService } from '../../user/user.service'
-import { UserEntity } from '../../user/entity/user.entity'
+import { CreatorService } from '../../creator/creator.service'
 
 const TRANSFER_INSTRUCTION_INDEX = 2
 
@@ -27,12 +26,12 @@ export class DonorService {
     constructor(
         @InjectRepository(DonationEntity)
         private readonly donationRepository: Repository<DonationEntity>,
-        private readonly userService: UserService,
+        private readonly creatorService: CreatorService,
     ) {
         this.solanaConn = new Connection(clusterApiUrl('devnet'))
     }
 
-    async donate(rawTransaction: string, message: string) {
+    async donate(fromUserId: string, rawTransaction: string, message: string) {
         const transaction = Transaction.from(base58.decode(rawTransaction))
 
         // tx validations
@@ -55,8 +54,8 @@ export class DonorService {
         const from = instruction.keys[0]
         const to = instruction.keys[1]
 
-        const toUser = await this.userService.getUser(
-            'publicKey',
+        const toCreator = await this.creatorService.getCreator(
+            'id',
             to.pubkey.toString(),
         )
 
@@ -64,11 +63,11 @@ export class DonorService {
             txSignature: base58.encode(transaction.signature),
             message,
             createdAt: new Date(),
-            from: from.pubkey.toString(),
+            fromId: from.pubkey.toString(),
             lamports: parsedData.lamports,
             status: DonationStatus.PENDING,
             isBrodcasted: false,
-            toId: toUser.id,
+            toId: toCreator.id,
         })
 
         // transaction validate complete
@@ -96,10 +95,10 @@ export class DonorService {
     }
 
     async getCreatorInfoByPublicKey(publicKey: string) {
-        const user = await this.userService.getUser('publicKey', publicKey)
+        const user = await this.creatorService.getCreator('username', publicKey)
 
         return {
-            publicKey: user.publicKey,
+            publicKey: user.id,
             username: user.username,
         }
     }

@@ -1,5 +1,5 @@
+import { CreatorEntity } from '../../creator/entity/creator.entity'
 import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from 'typeorm'
-import { UserEntity } from '../../user/entity/user.entity'
 
 export enum DonationStatus {
     PENDING = 'PENDING',
@@ -32,12 +32,6 @@ export class DonationEntity {
         type: 'varchar',
         nullable: false,
     })
-    from: string
-
-    @Column({
-        type: 'varchar',
-        nullable: false,
-    })
     message: string
 
     @Column({
@@ -60,9 +54,15 @@ export class DonationEntity {
     })
     isBrodcasted: boolean
 
+    @Column({
+        type: 'varchar',
+        nullable: false,
+    })
+    fromId: string
+
     @Column()
     toId: string
 
-    @ManyToOne((type) => UserEntity, (user) => user.donations)
-    to: UserEntity
+    @ManyToOne((type) => CreatorEntity)
+    to: CreatorEntity
 }

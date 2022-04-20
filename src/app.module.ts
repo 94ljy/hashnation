@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { UserModule } from './user/user.module'
 import { AuthModule } from './auth/auth.module'
 import { DonationModule } from './donation/donation.module'
 import { SnakeNamingStrategy } from 'typeorm-naming-strategies'
 import { APP_GUARD } from '@nestjs/core'
 import { AuthenticatedGuard } from './auth/guard/auth.guard'
 import { FirebaseAdminModule } from '@tfarras/nestjs-firebase-admin'
+import { CreatorModule } from './creator/creator.module'
 import * as admin from 'firebase-admin'
 
 @Module({
@@ -19,7 +19,6 @@ import * as admin from 'firebase-admin'
             keepConnectionAlive: true,
             synchronize: true,
         }),
-        UserModule,
         AuthModule,
         DonationModule,
         FirebaseAdminModule.forRoot({
@@ -40,6 +39,7 @@ import * as admin from 'firebase-admin'
                     'https://www.googleapis.com/robot/v1/metadata/x509/firebase-adminsdk-s5yci%40hashnation-6bc54.iam.gserviceaccount.com',
             } as any),
         }),
+        CreatorModule,
     ],
     controllers: [],
     providers: [{ provide: APP_GUARD, useClass: AuthenticatedGuard }],

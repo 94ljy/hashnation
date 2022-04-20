@@ -1,6 +1,5 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { UserService } from '../../user/user.service'
 import { Repository } from 'typeorm'
 import { DonationEntity } from '../entity/donation.entity'
 
@@ -9,37 +8,36 @@ export class DonationService {
     constructor(
         @InjectRepository(DonationEntity)
         private readonly donationRepository: Repository<DonationEntity>,
-        private readonly userService: UserService,
     ) {}
 
-    async getDonation(userId: string) {
-        const user = await this.userService.getUser('id', userId)
+    // async getDonation(userId: string) {
+    //     const user = await this.userService.getUser('id', userId)
 
-        const donation = await this.donationRepository.findOne({
-            where: {
-                isBrodcasted: false,
-                to: {
-                    id: user.id,
-                },
-            },
-            order: {
-                createdAt: 'ASC',
-            },
-        })
+    //     const donation = await this.donationRepository.findOne({
+    //         where: {
+    //             isBrodcasted: false,
+    //             to: {
+    //                 id: user.id,
+    //             },
+    //         },
+    //         order: {
+    //             createdAt: 'ASC',
+    //         },
+    //     })
 
-        if (!donation) throw new NotFoundException()
+    //     if (!donation) throw new NotFoundException()
 
-        return donation
-    }
+    //     return donation
+    // }
 
-    async getD(userId: string) {
-        const user = await this.userService.getUser('id', userId)
+    // async getD(userId: string) {
+    //     const user = await this.userService.getUser('id', userId)
 
-        return {
-            username: user.username,
-            donationUrl: `http://localhost:8080/donate/${user.publicKey}`,
-        }
-    }
+    //     return {
+    //         username: user.username,
+    //         donationUrl: `http://localhost:8080/donate/${user.publicKey}`,
+    //     }
+    // }
 
     // async getUserInfo(publicKey: string) {
     //     const user = await this.userService.getUser('publicKey', publicKey)

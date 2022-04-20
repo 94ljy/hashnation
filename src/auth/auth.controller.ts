@@ -25,23 +25,23 @@ export class AuthController {
         return {}
     }
 
-    @Public()
-    @Post('signup')
-    async signup(@Body() userSignupDto: UserSignupDto) {
-        await this.authService.signup(
-            userSignupDto.publicKey,
-            userSignupDto.signature,
-        )
-        return {
-            message: 'successfully signed up',
-        }
-    }
+    // @Public()
+    // @Post('signup')
+    // async signup(@Body() userSignupDto: UserSignupDto) {
+    //     await this.authService.signup(
+    //         userSignupDto.publicKey,
+    //         userSignupDto.signature,
+    //     )
+    //     return {
+    //         message: 'successfully signed up',
+    //     }
+    // }
 
-    @Public()
-    @Get('/signup/check-publickey/:publicKey')
-    async checkkey(@Param('publicKey') publicKey: string) {
-        return this.authService.checkPulbicKey(publicKey)
-    }
+    // @Public()
+    // @Get('/signup/check-publickey/:publicKey')
+    // async checkkey(@Param('publicKey') publicKey: string) {
+    //     return this.authService.checkPulbicKey(publicKey)
+    // }
 
     @Public()
     @Post('/signout')

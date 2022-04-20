@@ -5,7 +5,7 @@ import {
     FirebaseAuthStrategy,
     FirebaseUser,
 } from '@tfarras/nestjs-firebase-auth'
-import { AuthenticatedUser } from '../domain/authenticated.user'
+import { AuthenticatedUser } from '../../common/authenticated.user'
 
 @Injectable()
 export class FirebaseStrategy extends PassportStrategy(

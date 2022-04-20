@@ -3,11 +3,11 @@ import { DonorService } from './service/donor.service'
 import { DonationController } from './donation.controller'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { DonationEntity } from './entity/donation.entity'
-import { UserModule } from '../user/user.module'
 import { DonationService } from './service/donation.service'
+import { CreatorModule } from '../creator/creator.module'
 
 @Module({
-    imports: [TypeOrmModule.forFeature([DonationEntity]), UserModule],
+    imports: [CreatorModule, TypeOrmModule.forFeature([DonationEntity])],
     controllers: [DonationController],
     providers: [DonorService, DonationService],
 })
