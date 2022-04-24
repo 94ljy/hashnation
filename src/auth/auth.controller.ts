@@ -47,8 +47,6 @@ export class AuthController {
 
     @Get('/me')
     async me(@Req() req: any) {
-        return {
-            message: 'successfully logged in',
-        }
+        return {}
     }
 }

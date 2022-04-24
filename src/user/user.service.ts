@@ -20,11 +20,20 @@ export class UserService {
         return await this.userRepository.save(user)
     }
 
-    async getUserById(id: string) {
-        return this.userRepository.findOne(id)
+    async getUserById(userId: string) {
+        return this.userRepository.findOneOrFail(userId)
     }
 
     async getUserByUsername(username: string) {
-        return this.userRepository.findOne({ username })
+        return this.userRepository.findOneOrFail({ username })
+    }
+
+    async getUserInfo(userId: string) {
+        const user = await this.getUserById(userId)
+
+        return {
+            donateUrl: `http://localhost:3000/donate/${user.username}`,
+            widgetUrl: `http://localhost:3000/widget/${user.username}`,
+        }
     }
 }

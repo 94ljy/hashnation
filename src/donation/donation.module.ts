@@ -1,14 +1,19 @@
 import { Module } from '@nestjs/common'
-import { DonorService } from './service/donor.service'
+import { DonationService } from './service/donation.service'
 import { DonationController } from './donation.controller'
 import { TypeOrmModule } from '@nestjs/typeorm'
-import { DonationEntity } from './entity/donation.entity'
-import { DonationService } from './service/donation.service'
-import { CreatorModule } from '../creator/creator.module'
+import { DonationEntity } from '../entities/donation.entity'
+import { UserModule } from '../user/user.module'
+import { WalletModule } from '../wallet/wallet.module'
+import { DonorService } from './service/donor.service'
 
 @Module({
-    imports: [CreatorModule, TypeOrmModule.forFeature([DonationEntity])],
+    imports: [
+        UserModule,
+        WalletModule,
+        TypeOrmModule.forFeature([DonationEntity]),
+    ],
     controllers: [DonationController],
-    providers: [DonorService, DonationService],
+    providers: [DonationService, DonorService],
 })
 export class DonationModule {}

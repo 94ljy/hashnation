@@ -3,26 +3,28 @@ import {
     CreateDateColumn,
     DeleteDateColumn,
     Entity,
+    OneToMany,
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from 'typeorm'
 import * as bcrypt from 'bcrypt'
+import { UserWalletEntity } from './wallet.entity'
 
 @Entity({ name: 'user' })
 export class UserEntity {
     @PrimaryGeneratedColumn('uuid')
-    id: string
+    public id: string
 
     // @Column({ nullable: false })
     @CreateDateColumn({})
-    createdAt: Date
+    public createdAt: Date
 
     // @Column({ nullable: false })
     @UpdateDateColumn()
-    updatedAt: Date
+    public updatedAt: Date
 
     @DeleteDateColumn()
-    deletedAt?: Date | null
+    public deletedAt?: Date | null
 
     @Column({
         type: 'varchar',
@@ -30,7 +32,7 @@ export class UserEntity {
         nullable: false,
         unique: true,
     })
-    username: string
+    public username: string
 
     @Column({
         type: 'varchar',
@@ -45,13 +47,16 @@ export class UserEntity {
         nullable: false,
         unique: true,
     })
-    email: string
+    public email: string
 
     @Column({ nullable: false })
     isEmailVerified: boolean
 
     @Column({ nullable: false })
     isActive: boolean
+
+    @OneToMany(() => UserWalletEntity, (wallet) => wallet.user)
+    wallets: UserWalletEntity[]
 
     async setPassword(password: string) {
         this.password = await bcrypt.hash(password, 10)

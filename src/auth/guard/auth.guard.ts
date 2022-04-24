@@ -30,10 +30,8 @@ export const Public = () => SetMetadata(IS_PUBLIC_KEY, true)
 // }
 
 @Injectable()
-export class AuthenticatedGuard extends AuthGuard('local') {
-    constructor(private reflector: Reflector) {
-        super()
-    }
+export class AuthenticatedGuard implements CanActivate {
+    constructor(private reflector: Reflector) {}
 
     async canActivate(context: ExecutionContext) {
         const isPublic = this.reflector.getAllAndOverride<boolean>(
@@ -45,6 +43,7 @@ export class AuthenticatedGuard extends AuthGuard('local') {
             return true
         }
 
-        return super.canActivate(context) as any
+        const request = context.switchToHttp().getRequest()
+        return request.isAuthenticated()
     }
 }
