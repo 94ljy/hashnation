@@ -1,4 +1,5 @@
-export class UserSignupDto {
-    publicKey: string
-    signature: string
+export class UserSignUpDto {
+    username: string
+    password: string
+    email: string
 }

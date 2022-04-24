@@ -3,16 +3,45 @@ import {
     Injectable,
     UnauthorizedException,
 } from '@nestjs/common'
-import { JwtService } from '@nestjs/jwt'
-import { PublicKey } from '@solana/web3.js'
-import base58 from 'bs58'
-import moment from 'moment'
-import nacl from 'tweetnacl'
-import { LoginMessage } from './dto/login.dto'
+
+import { UserService } from 'src/user/user.service'
 
 @Injectable()
 export class AuthService {
-    // constructor(private readonly userService: UserService) {}
+    constructor(private readonly userService: UserService) {}
+
+    async validateUser(username: string, password: string): Promise<any> {
+        const user = await this.userService.getUserByUsername(username)
+
+        if (!user) {
+            throw new UnauthorizedException('user not found')
+        }
+
+        const isPasswordValid = await user.comparePassword(password)
+
+        if (!isPasswordValid) {
+            throw new UnauthorizedException('Invalid password')
+        }
+        return user
+    }
+
+    async signUp(
+        username: string,
+        password: string,
+        email: string,
+    ): Promise<any> {
+        const user = await this.userService.getUserById(username)
+        if (user) {
+            throw new BadRequestException('Username already exists')
+        }
+        const newUser = await this.userService.createUser(
+            username,
+            password,
+            email,
+        )
+        return newUser
+    }
+
     // async signup(publicKey: string, signature: string) {
     //     if (
     //         !nacl.sign.detached.verify(

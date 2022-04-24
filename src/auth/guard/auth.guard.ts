@@ -30,7 +30,7 @@ export const Public = () => SetMetadata(IS_PUBLIC_KEY, true)
 // }
 
 @Injectable()
-export class AuthenticatedGuard extends AuthGuard('firebase') {
+export class AuthenticatedGuard extends AuthGuard('local') {
     constructor(private reflector: Reflector) {
         super()
     }

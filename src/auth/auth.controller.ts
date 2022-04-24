@@ -9,7 +9,7 @@ import {
     UseGuards,
 } from '@nestjs/common'
 import { AuthService } from './auth.service'
-import { UserSignupDto } from './dto/user-signup.dto'
+import { UserSignUpDto } from './dto/user-signup.dto'
 import { Public } from './guard/auth.guard'
 import { LoginGuard } from './guard/login.guard'
 
@@ -18,32 +18,27 @@ export class AuthController {
     constructor(private readonly authService: AuthService) {}
 
     // @UseGuards(AuthGuard('local'))
-    @Public()
+    // @Public()
     @UseGuards(LoginGuard)
-    @Post('/signin')
+    @Post('/sign-in')
     async signin(@Req() req: any) {
+        console.log(req.user)
         return {}
     }
 
-    // @Public()
-    // @Post('signup')
-    // async signup(@Body() userSignupDto: UserSignupDto) {
-    //     await this.authService.signup(
-    //         userSignupDto.publicKey,
-    //         userSignupDto.signature,
-    //     )
-    //     return {
-    //         message: 'successfully signed up',
-    //     }
-    // }
-
-    // @Public()
-    // @Get('/signup/check-publickey/:publicKey')
-    // async checkkey(@Param('publicKey') publicKey: string) {
-    //     return this.authService.checkPulbicKey(publicKey)
-    // }
-
     @Public()
+    @Post('sign-up')
+    async signup(@Body() userSignupDto: UserSignUpDto) {
+        await this.authService.signUp(
+            userSignupDto.username,
+            userSignupDto.password,
+            userSignupDto.email,
+        )
+        return {
+            message: 'successfully signed up',
+        }
+    }
+
     @Post('/signout')
     async signout(@Req() req: any) {
         req.logout()
@@ -51,7 +46,7 @@ export class AuthController {
     }
 
     @Get('/me')
-    async me() {
+    async me(@Req() req: any) {
         return {
             message: 'successfully logged in',
         }

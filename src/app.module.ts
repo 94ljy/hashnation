@@ -7,6 +7,7 @@ import { APP_GUARD } from '@nestjs/core'
 import { AuthenticatedGuard } from './auth/guard/auth.guard'
 import { FirebaseAdminModule } from '@tfarras/nestjs-firebase-admin'
 import { CreatorModule } from './creator/creator.module'
+import { UserModule } from './user/user.module'
 import * as admin from 'firebase-admin'
 
 @Module({
@@ -40,6 +41,7 @@ import * as admin from 'firebase-admin'
             } as any),
         }),
         CreatorModule,
+        UserModule,
     ],
     controllers: [],
     providers: [{ provide: APP_GUARD, useClass: AuthenticatedGuard }],
