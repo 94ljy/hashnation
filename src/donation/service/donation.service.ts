@@ -9,4 +9,15 @@ export class DonationService {
         @InjectRepository(DonationEntity)
         private readonly donationRepository: Repository<DonationEntity>,
     ) {}
+
+    async getDonations(userId: string, page: number, limit: number) {
+        return this.donationRepository.find({
+            where: { toUserId: userId },
+            skip: (page - 1) * limit,
+            take: limit,
+            order: {
+                createdAt: 'DESC',
+            },
+        })
+    }
 }

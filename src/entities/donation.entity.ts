@@ -19,12 +19,12 @@ export enum DonationStatus {
 @Entity({
     name: 'donation',
 })
-@Index('donation_created_at_index', ['createdAt'])
-@Index('donation_user_id_index', ['user_id'])
-@Index('donation_user_id_and_created_at_index', ['user_id', 'created_at'])
-@Index('donation_user_id_and_status_index', ['user_id', 'status'])
-@Index('donation_tx_signature_index', ['tx_signature'], { unique: true })
-@Index('donation_from_address_index', ['from_address'])
+// @Index('donation_created_at_index', ['createdAt'])
+// @Index('donation_user_id_index', ['toUserId'])
+@Index('donation_user_id_and_created_at_index', ['toUserId', 'createdAt'])
+@Index('donation_user_id_and_status_index', ['toUserId', 'status'])
+// @Index('donation_tx_signature_index', ['txSignature'], { unique: true })
+@Index('donation_from_address_index', ['fromAddress'])
 export class DonationEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string
@@ -40,7 +40,6 @@ export class DonationEntity {
     })
     txSignature: string
 
-    @Index()
     @Column({
         type: 'varchar',
         nullable: false,
