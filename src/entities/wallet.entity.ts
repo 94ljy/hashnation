@@ -5,6 +5,7 @@ import {
     Entity,
     ManyToOne,
     PrimaryColumn,
+    PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from 'typeorm'
 import { UserEntity } from './user.entity'
@@ -13,7 +14,7 @@ import { UserEntity } from './user.entity'
 
 @Entity({ name: 'user_wallet' })
 export class UserWalletEntity {
-    @PrimaryColumn()
+    @PrimaryGeneratedColumn('uuid')
     public id: string
 
     // @Column({ nullable: false })

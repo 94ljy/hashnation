@@ -32,6 +32,18 @@ export class DonorService {
         this.solanaConn = new Connection(clusterApiUrl('devnet'))
     }
 
+    async getCreatorInfo(username: string) {
+        const user = await this.userService.getUserByUsername(username)
+        const wallets = await this.walletService.getUserWallet(user.id)
+
+        return {
+            username: user.username,
+            wallets: wallets.map((item) => ({
+                address: item.address,
+            })),
+        }
+    }
+
     verifyTransaction(rawTransaction: string) {
         const transaction = Transaction.from(base58.decode(rawTransaction))
 

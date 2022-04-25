@@ -32,8 +32,8 @@ export class UserService {
         const user = await this.getUserById(userId)
 
         return {
-            donateUrl: `http://localhost:3000/donate/${user.username}`,
-            widgetUrl: `http://localhost:3000/widget/${user.username}`,
+            donateUrl: `http://localhost:8080/donate/${user.username}`,
+            widgetUrl: `http://localhost:8080/widget/${user.username}`,
         }
     }
 }

@@ -2,6 +2,7 @@ import {
     Column,
     CreateDateColumn,
     Entity,
+    Index,
     ManyToOne,
     PrimaryGeneratedColumn,
 } from 'typeorm'
@@ -14,14 +15,21 @@ export enum DonationStatus {
     BRODCASTED = 'BRODCASTED',
 }
 
+// @Index('donation_user_id_index', ['userId'], { unique: true })
 @Entity({
     name: 'donation',
 })
+@Index('donation_created_at_index', ['createdAt'])
+@Index('donation_user_id_index', ['user_id'])
+@Index('donation_user_id_and_created_at_index', ['user_id', 'created_at'])
+@Index('donation_user_id_and_status_index', ['user_id', 'status'])
+@Index('donation_tx_signature_index', ['tx_signature'], { unique: true })
+@Index('donation_from_address_index', ['from_address'])
 export class DonationEntity {
     @PrimaryGeneratedColumn('uuid')
     id: string
 
-    @CreateDateColumn({ nullable: false })
+    @CreateDateColumn()
     createdAt: Date
 
     @Column({
@@ -32,6 +40,7 @@ export class DonationEntity {
     })
     txSignature: string
 
+    @Index()
     @Column({
         type: 'varchar',
         nullable: false,
@@ -74,6 +83,7 @@ export class DonationEntity {
     @Column()
     toUserId: string
 
+    @Index()
     @ManyToOne((type) => UserEntity)
     toUser: UserEntity
 }

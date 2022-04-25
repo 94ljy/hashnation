@@ -18,7 +18,7 @@ export class AuthController {
     constructor(private readonly authService: AuthService) {}
 
     // @UseGuards(AuthGuard('local'))
-    // @Public()
+    @Public()
     @UseGuards(LoginGuard)
     @Post('/sign-in')
     async signin(@Req() req: any) {
@@ -39,7 +39,7 @@ export class AuthController {
         }
     }
 
-    @Post('/signout')
+    @Post('/sign-out')
     async signout(@Req() req: any) {
         req.logout()
         return {}

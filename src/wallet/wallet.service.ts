@@ -28,7 +28,7 @@ export class WalletService {
     }
 
     async getUserWallet(userId: string) {
-        return this.userWalletRepository.findOneOrFail({ userId })
+        return this.userWalletRepository.find({ userId })
     }
 
     async hasWalletAddress(userId: string, walletAddress: string) {
