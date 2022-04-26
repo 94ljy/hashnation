@@ -9,10 +9,7 @@ import { GetDonationQueryDto } from '../dto/get-donation-query.dto'
 
 @Controller('donation')
 export class DonationController {
-    constructor(
-        private readonly donationService: DonationService,
-        private readonly donorService: DonorService,
-    ) {}
+    constructor(private readonly donationService: DonationService) {}
 
     @Get()
     async getDonations(
@@ -24,5 +21,11 @@ export class DonationController {
             getDonationQueryDto.page,
             getDonationQueryDto.limit,
         )
+    }
+
+    @Get('/test')
+    @Public()
+    async test() {
+        this.donationService.test()
     }
 }

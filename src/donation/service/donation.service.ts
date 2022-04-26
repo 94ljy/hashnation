@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { DonationEntity } from '../../entities/donation.entity'
@@ -6,6 +7,7 @@ import { DonationEntity } from '../../entities/donation.entity'
 @Injectable()
 export class DonationService {
     constructor(
+        private readonly eventEmitter: EventEmitter2,
         @InjectRepository(DonationEntity)
         private readonly donationRepository: Repository<DonationEntity>,
     ) {}
@@ -19,5 +21,9 @@ export class DonationService {
                 createdAt: 'DESC',
             },
         })
+    }
+
+    async test() {
+        this.eventEmitter.emit('event.test', 'test')
     }
 }

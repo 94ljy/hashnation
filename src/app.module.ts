@@ -9,6 +9,7 @@ import { UserModule } from './user/user.module'
 import { WalletModule } from './wallet/wallet.module'
 import { DonationModule } from './donation/donation.module'
 import * as admin from 'firebase-admin'
+import { EventEmitterModule } from '@nestjs/event-emitter'
 
 @Module({
     imports: [
@@ -43,6 +44,7 @@ import * as admin from 'firebase-admin'
         UserModule,
         WalletModule,
         DonationModule,
+        EventEmitterModule.forRoot(),
     ],
     controllers: [],
     providers: [{ provide: APP_GUARD, useClass: AuthenticatedGuard }],
