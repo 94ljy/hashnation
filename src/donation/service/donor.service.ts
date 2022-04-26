@@ -12,6 +12,7 @@ import base58 from 'bs58'
 import { ns64, struct, u32 } from '@solana/buffer-layout'
 import { UserService } from '../../user/user.service'
 import { WalletService } from '../../wallet/wallet.service'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 
 const TRANSFER_INSTRUCTION_INDEX = 2
 
@@ -24,6 +25,7 @@ const TRANSFER_INSTRUCTION = struct<{ instruction: number; lamports: number }>([
 export class DonorService {
     private readonly solanaConn: Connection
     constructor(
+        private readonly eventEmitter: EventEmitter2,
         private readonly userService: UserService,
         private readonly walletService: WalletService,
         @InjectRepository(DonationEntity)
@@ -44,9 +46,7 @@ export class DonorService {
         }
     }
 
-    verifyTransaction(rawTransaction: string) {
-        const transaction = Transaction.from(base58.decode(rawTransaction))
-
+    verifyTransaction(transaction: Transaction) {
         if (!transaction.verifySignatures()) {
             throw new BadRequestException('Invalid signature')
         }
@@ -72,7 +72,6 @@ export class DonorService {
         const to = instruction.keys[1]
 
         return {
-            transaction,
             signature: base58.encode(transaction.signature),
             from: from.pubkey.toString(),
             to: to.pubkey.toString(),
@@ -81,12 +80,16 @@ export class DonorService {
     }
 
     async donate(toUsername: string, rawTransaction: string, message: string) {
-        const { transaction, signature, from, to, lamports } =
-            this.verifyTransaction(rawTransaction)
+        const transaction = Transaction.from(base58.decode(rawTransaction))
+        const { signature, from, to, lamports } =
+            this.verifyTransaction(transaction)
 
         const toUser = await this.userService.getUserByUsername(toUsername)
 
-        const hasWallet = this.walletService.hasWalletAddress(toUser.id, to)
+        const hasWallet = await this.walletService.hasWalletAddress(
+            toUser.id,
+            to,
+        )
 
         if (!hasWallet) {
             throw new BadRequestException(`User has no wallet address ${to}`)
@@ -117,6 +120,13 @@ export class DonorService {
         } else {
             await this.donationRepository.update(donation.id, {
                 status: DonationStatus.APPROVED,
+            })
+
+            this.eventEmitter.emit('widget.donate', {
+                toUserId: donation.toUser.id,
+                from: donation.fromAddress,
+                message: donation.message,
+                lamports: donation.lamports,
             })
         }
     }
