@@ -5,11 +5,20 @@ import CookieParser from 'cookie-parser'
 import session from 'express-session'
 import passport from 'passport'
 import FileStore from 'session-file-store'
+import appConfig from './config/app.config'
+import { ConfigType } from '@nestjs/config'
 
 const f = FileStore(session)
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule)
+
+    const appConfigService = app.get<ConfigType<typeof appConfig>>(
+        appConfig.KEY,
+    )
+
+    app.setGlobalPrefix('/v1/api/')
+
     app.useGlobalPipes(
         new ValidationPipe({
             transform: true,
@@ -18,11 +27,10 @@ async function bootstrap() {
 
     app.use(
         session({
-            secret: 'secret_test',
-            resave: true,
-            saveUninitialized: true,
+            secret: appConfigService.cookieSecret,
+            resave: false,
+            saveUninitialized: false,
             cookie: {
-                maxAge: 1000 * 60 * 60 * 24,
                 httpOnly: true,
             },
             // store: new RedisStore({ client: client }),

@@ -32,16 +32,4 @@ export class DonationService {
             lamports: LAMPORTS_PER_SOL,
         })
     }
-
-    async widgetPause(userId: string) {
-        this.eventEmitter.emit('widget.pause', userId)
-    }
-
-    async widgetPlay(userId: string) {
-        this.eventEmitter.emit('widget.play', userId)
-    }
-
-    async widgetSkip(userId: string) {
-        this.eventEmitter.emit('widget.skip', userId)
-    }
 }

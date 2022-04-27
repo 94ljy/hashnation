@@ -27,19 +27,4 @@ export class DonationController {
     async test(@User() user: AuthenticatedUser) {
         this.donationService.testDonation(user.id)
     }
-
-    @Post('/widget/pause')
-    async widgetPause(@User() user: AuthenticatedUser) {
-        this.donationService.widgetPause(user.id)
-    }
-
-    @Post('/widget/play')
-    async widgetPlay(@User() user: AuthenticatedUser) {
-        this.donationService.widgetPlay(user.id)
-    }
-
-    @Post('/widget/skip')
-    async widgetSkip(@User() user: AuthenticatedUser) {
-        this.donationService.widgetSkip(user.id)
-    }
 }

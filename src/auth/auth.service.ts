@@ -39,6 +39,10 @@ export class AuthService {
         }
     }
 
+    async updateUserLastLogin(userId: string) {
+        await this.userService.updateUserLastLogin(userId)
+    }
+
     // async signup(publicKey: string, signature: string) {
     //     if (
     //         !nacl.sign.detached.verify(

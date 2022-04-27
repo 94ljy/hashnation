@@ -1,4 +1,9 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import {
+    BadRequestException,
+    Inject,
+    Injectable,
+    LoggerService,
+} from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { DonationEntity, DonationStatus } from '../../entities/donation.entity'
@@ -7,12 +12,16 @@ import {
     Connection,
     SystemProgram,
     Transaction,
+    Cluster,
 } from '@solana/web3.js'
 import base58 from 'bs58'
 import { ns64, struct, u32 } from '@solana/buffer-layout'
 import { UserService } from '../../user/user.service'
 import { WalletService } from '../../wallet/wallet.service'
 import { EventEmitter2 } from '@nestjs/event-emitter'
+import { ConfigType } from '@nestjs/config'
+import appConfig from '../../config/app.config'
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 
 const TRANSFER_INSTRUCTION_INDEX = 2
 
@@ -30,8 +39,14 @@ export class DonorService {
         private readonly walletService: WalletService,
         @InjectRepository(DonationEntity)
         private readonly donationRepository: Repository<DonationEntity>,
+        @Inject(appConfig.KEY)
+        private readonly appConfigService: ConfigType<typeof appConfig>,
+        @Inject(WINSTON_MODULE_NEST_PROVIDER)
+        private readonly logger: LoggerService,
     ) {
-        this.solanaConn = new Connection(clusterApiUrl('devnet'))
+        this.solanaConn = new Connection(
+            clusterApiUrl(this.appConfigService.solanaCluster as Cluster),
+        )
     }
 
     async getCreatorInfo(username: string) {
@@ -48,25 +63,33 @@ export class DonorService {
 
     verifyTransaction(transaction: Transaction) {
         if (!transaction.verifySignatures()) {
-            throw new BadRequestException('Invalid signature')
+            this.logger.error('Transaction signature verification failed')
+            throw new BadRequestException(
+                'Transaction signature verification failed',
+            )
         }
 
         // tx validations
         if (transaction.instructions.length !== 1) {
-            throw new BadRequestException('Invalid tx')
+            this.logger.error('Invalid number of instructions')
+            throw new BadRequestException('Invalid number of instructions')
         }
 
         const instruction = transaction.instructions[0]
 
         // tx validations
-        if (!SystemProgram.programId.equals(instruction.programId))
+        if (!SystemProgram.programId.equals(instruction.programId)) {
+            this.logger.error('Invalid programId')
             throw new BadRequestException('Invalid programId')
+        }
 
         const parsedData = TRANSFER_INSTRUCTION.decode(instruction.data)
 
         // tx validations
-        if (parsedData.instruction !== TRANSFER_INSTRUCTION_INDEX)
+        if (parsedData.instruction !== TRANSFER_INSTRUCTION_INDEX) {
+            this.logger.error('Invalid instruction index')
             throw new BadRequestException('Invalid instruction index')
+        }
 
         const from = instruction.keys[0]
         const to = instruction.keys[1]
@@ -92,6 +115,7 @@ export class DonorService {
         )
 
         if (!hasWallet) {
+            this.logger.error(`User does not have a wallet address ${to}`)
             throw new BadRequestException(`User has no wallet address ${to}`)
         }
 
@@ -113,10 +137,11 @@ export class DonorService {
         const result = await this.solanaConn.confirmTransaction(tx)
 
         if (result.value.err) {
+            this.logger.error(`tx:${tx} Transaction failed ${result.value.err}`)
+
             await this.donationRepository.update(donation.id, {
                 status: DonationStatus.REJECTED,
             })
-            throw new BadRequestException(result.value.err)
         } else {
             await this.donationRepository.update(donation.id, {
                 status: DonationStatus.APPROVED,
@@ -128,6 +153,11 @@ export class DonorService {
                 message: donation.message,
                 lamports: donation.lamports,
             })
+        }
+
+        return {
+            err: result.value.err,
+            tx: tx,
         }
     }
 }

@@ -26,6 +26,9 @@ export class UserEntity {
     @DeleteDateColumn()
     public deletedAt?: Date | null
 
+    @Column({ nullable: true })
+    public lastLoginAt?: Date | null
+
     @Column({
         type: 'varchar',
         length: 255,

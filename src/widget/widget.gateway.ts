@@ -1,22 +1,24 @@
+import { Inject, LoggerService } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
 import {
-    MessageBody,
-    SubscribeMessage,
     WebSocketGateway,
     WebSocketServer,
     OnGatewayConnection,
     OnGatewayDisconnect,
-    WsException,
 } from '@nestjs/websockets'
-import { Observable } from 'rxjs'
 import { Server, Socket } from 'socket.io'
-import { UserService } from '../../user/user.service'
+import { UserService } from '../user/user.service'
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 
 @WebSocketGateway()
 export class WidgetGateway implements OnGatewayConnection, OnGatewayDisconnect {
     @WebSocketServer()
     server: Server
-    constructor(private readonly userService: UserService) {}
+    constructor(
+        private readonly userService: UserService,
+        @Inject(WINSTON_MODULE_NEST_PROVIDER)
+        private readonly logger: LoggerService,
+    ) {}
 
     private getCreatorRoomname(userId: string) {
         return `creator_${userId}`
@@ -34,7 +36,7 @@ export class WidgetGateway implements OnGatewayConnection, OnGatewayDisconnect {
             const user = await this.userService.getUserByUsername(username)
             client.join(this.getCreatorRoomname(user.id))
 
-            console.log(`client id:${client.id} connected`)
+            this.logger.log(`client id:${client.id} connected`)
         } catch (e) {
             console.log('user not found')
             client.disconnect()
@@ -42,7 +44,7 @@ export class WidgetGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     handleDisconnect(client: Socket) {
-        console.log(`client id:${client.id} closed`)
+        this.logger.log(`client id:${client.id} closed`)
     }
 
     @OnEvent('widget.donate')

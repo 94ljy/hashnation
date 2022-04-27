@@ -4,7 +4,6 @@ import { AuthController } from './auth.controller'
 import { PassportModule } from '@nestjs/passport'
 import { LocalStrategy } from './strategy/local.strategy'
 import { SessionSerializer } from './session.serializer'
-import { FirebaseStrategy } from './strategy/firebase.strategy'
 import { UserModule } from 'src/user/user.module'
 
 @Module({

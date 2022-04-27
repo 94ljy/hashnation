@@ -7,7 +7,6 @@ import { UserModule } from '../user/user.module'
 import { WalletModule } from '../wallet/wallet.module'
 import { DonorService } from './service/donor.service'
 import { DonorController } from './controller/donor.controller'
-import { WidgetGateway } from './gateway/widget.gateway'
 
 @Module({
     imports: [
@@ -16,6 +15,6 @@ import { WidgetGateway } from './gateway/widget.gateway'
         TypeOrmModule.forFeature([DonationEntity]),
     ],
     controllers: [DonationController, DonorController],
-    providers: [DonationService, DonorService, WidgetGateway],
+    providers: [DonationService, DonorService],
 })
 export class DonationModule {}

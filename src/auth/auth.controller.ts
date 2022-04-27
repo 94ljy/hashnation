@@ -8,6 +8,8 @@ import {
     UnauthorizedException,
     UseGuards,
 } from '@nestjs/common'
+import { AuthenticatedUser } from '../common/authenticated.user'
+import { User } from '../common/user.decorator'
 import { AuthService } from './auth.service'
 import { UserSignUpDto } from './dto/user-signup.dto'
 import { Public } from './guard/auth.guard'
@@ -21,8 +23,12 @@ export class AuthController {
     @Public()
     @UseGuards(LoginGuard)
     @Post('/sign-in')
-    async signin(@Req() req: any) {
-        console.log(req.user)
+    async signin(@Req() req: any, @User() user: AuthenticatedUser) {
+        try {
+            await this.authService.updateUserLastLogin(user.id)
+        } catch (e) {
+            req.logout()
+        }
         return {}
     }
 
@@ -46,7 +52,7 @@ export class AuthController {
     }
 
     @Get('/me')
-    async me(@Req() req: any) {
+    async me() {
         return {}
     }
 }
