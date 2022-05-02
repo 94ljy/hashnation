@@ -10,6 +10,12 @@ import { Server, Socket } from 'socket.io'
 import { UserService } from '../user/user.service'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 import { Donation } from '../entities/donation.entity'
+import {
+    WIDGET_DONATE_EVENT,
+    WIDGET_PAUSE_EVENT,
+    WIDGET_PLAY_EVENT,
+    WIDGET_SKIP_EVENT,
+} from '../event/event'
 
 @WebSocketGateway()
 export class WidgetGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -60,7 +66,7 @@ export class WidgetGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.logger.log(`client id:${client.id} closed`)
     }
 
-    @OnEvent('widget.donate')
+    @OnEvent(WIDGET_DONATE_EVENT)
     donateEvent(donation: Donation) {
         // const { toUserId, ...info } = payload
 
@@ -69,17 +75,17 @@ export class WidgetGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.getCreatorRoom(toUserId).emit('donation', info)
     }
 
-    @OnEvent('widget.pause')
+    @OnEvent(WIDGET_PAUSE_EVENT)
     widgetPause(userId: string) {
         this.getCreatorRoom(userId).emit('pause')
     }
 
-    @OnEvent('widget.play')
+    @OnEvent(WIDGET_PLAY_EVENT)
     widgetPlay(userId: string) {
         this.getCreatorRoom(userId).emit('play')
     }
 
-    @OnEvent('widget.skip')
+    @OnEvent(WIDGET_SKIP_EVENT)
     widgetSkip(userId: string) {
         this.getCreatorRoom(userId).emit('skip')
     }

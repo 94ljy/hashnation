@@ -4,6 +4,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { Repository } from 'typeorm'
 import { Donation, DonationStatus } from '../../entities/donation.entity'
+import { WIDGET_DONATE_EVENT } from '../../event/event'
 
 @Injectable()
 export class DonationService {
@@ -42,6 +43,6 @@ export class DonationService {
             throw new BadRequestException('Donation is not approved')
         }
 
-        this.eventEmitter.emit('widget.donate', donation)
+        this.eventEmitter.emit(WIDGET_DONATE_EVENT, donation)
     }
 }

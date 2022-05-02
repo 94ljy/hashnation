@@ -5,7 +5,7 @@ import {
     LoggerService,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { User } from 'src/entities/user.entity'
+import { User } from '../entities/user.entity'
 import { Repository } from 'typeorm'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 import { ConfigService } from '../config/config.service'
