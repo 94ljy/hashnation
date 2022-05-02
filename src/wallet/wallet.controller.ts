@@ -24,6 +24,7 @@ export class WalletController {
         const newWallet = await this.walletService.createWallet(
             user.id,
             addUserWalletDto.address,
+            addUserWalletDto.signature,
         )
 
         return {

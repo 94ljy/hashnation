@@ -1,8 +1,15 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
+import { PublicKey } from '@solana/web3.js'
+import base58 from 'bs58'
+import nacl from 'tweetnacl'
 import { Repository } from 'typeorm'
 import { UserWallet } from '../entities/wallet.entity'
 import { UserService } from '../user/user.service'
+
+export const CREATE_USER_WALLSET_MESSAGE = new TextEncoder().encode(
+    'Approve Add Wallet',
+)
 
 @Injectable()
 export class WalletService {
@@ -14,16 +21,38 @@ export class WalletService {
 
     async createWallet(
         userId: string,
-        // walletType: string,
         walletAddress: string,
+        signature: string,
     ) {
         const user = await this.userService.getUserById(userId)
 
         if (!user) throw new BadRequestException('User not found')
 
+        try {
+            new PublicKey(base58.decode(walletAddress))
+        } catch (e) {
+            throw new BadRequestException('Invalid wallet address')
+        }
+
+        try {
+            const isValidSignature = nacl.sign.detached.verify(
+                CREATE_USER_WALLSET_MESSAGE,
+                base58.decode(signature),
+                base58.decode(walletAddress),
+            )
+            if (!isValidSignature) throw new Error()
+        } catch (e) {
+            throw new BadRequestException('Invalid signature')
+        }
+
+        const userWalletList = await this.getUserWallet(userId)
+
+        if (userWalletList.length > 0) {
+            throw new BadRequestException('User already has a wallet')
+        }
+
         const userWallet = new UserWallet()
         userWallet.user = user
-        // userWallet.type = walletType as any
         userWallet.address = walletAddress
 
         return await this.userWalletRepository.save(userWallet)
@@ -58,10 +87,10 @@ export class WalletService {
             id: walletId,
         })
 
-        if (!userWallet) {
-            throw new BadRequestException('Wallet not found')
-        }
+        if (!userWallet) throw new BadRequestException('Wallet not found')
 
-        return await this.userWalletRepository.remove(userWallet)
+        userWallet.deletedAt = new Date()
+
+        return await this.userWalletRepository.save(userWallet)
     }
 }
