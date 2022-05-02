@@ -8,10 +8,12 @@ import { InjectRepository } from '@nestjs/typeorm'
 import { User } from 'src/entities/user.entity'
 import { Repository } from 'typeorm'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
+import { ConfigService } from '../config/config.service'
 
 @Injectable()
 export class UserService {
     constructor(
+        private readonly configService: ConfigService,
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
         @Inject(WINSTON_MODULE_NEST_PROVIDER)
@@ -55,9 +57,11 @@ export class UserService {
 
         if (!user) throw new BadRequestException(`User ${userId} not found`)
 
+        const serverUrl = this.configService.get('SERVER_URL')
+
         return {
-            donateUrl: `http://localhost:8080/donate/${user.username}`,
-            widgetUrl: `http://localhost:8080/widget/${user.username}`,
+            donateUrl: `http://${serverUrl}/donate/${user.username}`,
+            widgetUrl: `http://${serverUrl}/widget/${user.username}`,
         }
     }
 

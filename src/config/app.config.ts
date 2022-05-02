@@ -20,6 +20,9 @@ export class AppConfig {
 
     @IsEnum(SOLANA_CLUSTER)
     SOLANA_CLUSTER: SOLANA_CLUSTER
+
+    @IsString()
+    SERVER_URL: string
 }
 
 export const appConfigValidate = (config: any) => {
