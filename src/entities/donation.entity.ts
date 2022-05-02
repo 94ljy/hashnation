@@ -6,7 +6,7 @@ import {
     ManyToOne,
     PrimaryGeneratedColumn,
 } from 'typeorm'
-import { UserEntity } from './user.entity'
+import { User } from './user.entity'
 
 export enum DonationStatus {
     PENDING = 'PENDING',
@@ -25,7 +25,7 @@ export enum DonationStatus {
 @Index('donation_user_id_and_status_index', ['toUserId', 'status'])
 // @Index('donation_tx_signature_index', ['txSignature'], { unique: true })
 @Index('donation_from_address_index', ['fromAddress'])
-export class DonationEntity {
+export class Donation {
     @PrimaryGeneratedColumn('uuid')
     id: string
 
@@ -83,6 +83,6 @@ export class DonationEntity {
     toUserId: string
 
     @Index()
-    @ManyToOne((type) => UserEntity)
-    toUser: UserEntity
+    @ManyToOne((type) => User)
+    toUser: User
 }

@@ -1,33 +1,38 @@
+import 'reflect-metadata'
 import { ValidationPipe } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
-import CookieParser from 'cookie-parser'
 import session from 'express-session'
 import passport from 'passport'
 import FileStore from 'session-file-store'
-import appConfig from './config/app.config'
-import { ConfigType } from '@nestjs/config'
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import { ConfigService } from './config/config.service'
 
 const f = FileStore(session)
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule)
 
-    const appConfigService = app.get<ConfigType<typeof appConfig>>(
-        appConfig.KEY,
-    )
+    const configService = app.get<ConfigService>(ConfigService)
 
     app.setGlobalPrefix('/v1/api/')
 
     app.useGlobalPipes(
         new ValidationPipe({
+            disableErrorMessages:
+                configService.get('NODE_ENV') === 'production',
+            // whitelist: true,
+            forbidNonWhitelisted: true,
             transform: true,
+            transformOptions: {
+                enableImplicitConversion: true,
+            },
         }),
     )
 
     app.use(
         session({
-            secret: appConfigService.cookieSecret,
+            secret: configService.get('COOKIE_SECRET'),
             resave: false,
             saveUninitialized: false,
             cookie: {
@@ -39,6 +44,22 @@ async function bootstrap() {
             }),
         }),
     )
+
+    if (configService.get('NODE_ENV') === 'development') {
+        SwaggerModule.setup(
+            'api',
+            app,
+            SwaggerModule.createDocument(
+                app,
+                new DocumentBuilder()
+                    .setTitle('Hashnation API')
+                    .setDescription('Hashnation API')
+                    .setVersion('1.0')
+                    .addCookieAuth()
+                    .build(),
+            ),
+        )
+    }
 
     app.use(passport.initialize())
     app.use(passport.session())

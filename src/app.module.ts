@@ -8,11 +8,11 @@ import { UserModule } from './user/user.module'
 import { WalletModule } from './wallet/wallet.module'
 import { DonationModule } from './donation/donation.module'
 import { EventEmitterModule } from '@nestjs/event-emitter'
-import { ConfigModule } from '@nestjs/config'
 import winston from 'winston'
 import { WinstonModule, utilities } from 'nest-winston'
 import { WidgetModule } from './widget/widget.module'
-import appConfig from './config/app.config'
+
+import { ConfigModule } from './config/config.module'
 
 @Module({
     imports: [
@@ -22,6 +22,7 @@ import appConfig from './config/app.config'
             entities: [__dirname + '/**/*.entity{.ts,.js}'],
             namingStrategy: new SnakeNamingStrategy(),
             keepConnectionAlive: true,
+            logging: true,
             synchronize: true,
         }),
         WinstonModule.forRoot({
@@ -41,13 +42,9 @@ import appConfig from './config/app.config'
         WalletModule,
         DonationModule,
         EventEmitterModule.forRoot(),
-        ConfigModule.forRoot({
-            load: [appConfig],
-            isGlobal: true,
-            envFilePath: ['.env.local', '.env.pord'],
-            // v
-        }),
+        ConfigModule,
         WidgetModule,
+        ConfigModule,
     ],
     controllers: [],
     providers: [{ provide: APP_GUARD, useClass: AuthenticatedGuard }],

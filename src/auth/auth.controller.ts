@@ -19,7 +19,6 @@ import { LoginGuard } from './guard/login.guard'
 export class AuthController {
     constructor(private readonly authService: AuthService) {}
 
-    // @UseGuards(AuthGuard('local'))
     @Public()
     @UseGuards(LoginGuard)
     @Post('/sign-in')

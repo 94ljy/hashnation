@@ -1,15 +1,15 @@
-import { Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { UserWalletEntity } from '../entities/wallet.entity'
+import { UserWallet } from '../entities/wallet.entity'
 import { UserService } from '../user/user.service'
 
 @Injectable()
 export class WalletService {
     constructor(
         private readonly userService: UserService,
-        @InjectRepository(UserWalletEntity)
-        private readonly userWalletRepository: Repository<UserWalletEntity>,
+        @InjectRepository(UserWallet)
+        private readonly userWalletRepository: Repository<UserWallet>,
     ) {}
 
     async createWallet(
@@ -19,17 +19,29 @@ export class WalletService {
     ) {
         const user = await this.userService.getUserById(userId)
 
-        const userWallet = new UserWalletEntity()
+        if (!user) throw new BadRequestException('User not found')
+
+        const userWallet = new UserWallet()
         userWallet.user = user
         // userWallet.type = walletType as any
         userWallet.address = walletAddress
 
-        await this.userWalletRepository.save(userWallet)
+        return await this.userWalletRepository.save(userWallet)
     }
 
     async getUserWallet(userId: string) {
         return this.userWalletRepository.find({ userId })
     }
+
+    // async getUserWalletByUsername(username: string) {
+    //     return this.userWalletRepository.find({
+    //         where: {
+    //             user: {
+    //                 username,
+    //             },
+    //         },
+    //     })
+    // }
 
     async hasWalletAddress(userId: string, walletAddress: string) {
         const userWallet = await this.userWalletRepository.findOne({
@@ -38,5 +50,18 @@ export class WalletService {
         })
 
         return !!userWallet
+    }
+
+    async deleteUserWallet(userId: string, walletId: string) {
+        const userWallet = await this.userWalletRepository.findOne({
+            userId,
+            id: walletId,
+        })
+
+        if (!userWallet) {
+            throw new BadRequestException('Wallet not found')
+        }
+
+        return await this.userWalletRepository.remove(userWallet)
     }
 }

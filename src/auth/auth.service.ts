@@ -13,6 +13,8 @@ export class AuthService {
     async validateUser(username: string, password: string): Promise<any> {
         const user = await this.userService.getUserByUsername(username)
 
+        if (!user) throw new UnauthorizedException(`User ${username} not found`)
+
         const isPasswordValid = await user.comparePassword(password)
 
         if (!isPasswordValid) {
@@ -21,22 +23,18 @@ export class AuthService {
         return user
     }
 
-    async signUp(
-        username: string,
-        password: string,
-        email: string,
-    ): Promise<any> {
-        try {
-            const user = await this.userService.getUserById(username)
-            throw new BadRequestException('Username already exists')
-        } catch (e) {
-            const newUser = await this.userService.createUser(
-                username,
-                password,
-                email,
-            )
-            return newUser
-        }
+    async signUp(username: string, password: string, email: string) {
+        const user = await this.userService.getUserById(username)
+
+        if (user)
+            throw new BadRequestException(`Username ${username} already exists`)
+
+        const newUser = await this.userService.createUser(
+            username,
+            password,
+            email,
+        )
+        return newUser
     }
 
     async updateUserLastLogin(userId: string) {

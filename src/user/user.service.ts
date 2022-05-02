@@ -1,20 +1,31 @@
-import { Inject, Injectable, LoggerService } from '@nestjs/common'
+import {
+    BadRequestException,
+    Inject,
+    Injectable,
+    LoggerService,
+} from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { UserEntity } from 'src/entities/user.entity'
+import { User } from 'src/entities/user.entity'
 import { Repository } from 'typeorm'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 
 @Injectable()
 export class UserService {
     constructor(
-        @InjectRepository(UserEntity)
-        private readonly userRepository: Repository<UserEntity>,
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>,
         @Inject(WINSTON_MODULE_NEST_PROVIDER)
         private readonly logger: LoggerService,
     ) {}
 
     async createUser(username: string, password: string, email: string) {
-        const user = new UserEntity()
+        const findedUser = this.getUserByUsername(username)
+
+        if (findedUser === null) {
+            throw new BadRequestException(`Username ${username} already exists`)
+        }
+
+        const user = new User()
         user.username = username
         await user.setPassword(password)
         user.email = email
@@ -31,16 +42,18 @@ export class UserService {
         }
     }
 
-    async getUserById(userId: string) {
-        return this.userRepository.findOneOrFail(userId)
+    async getUserById(userId: string): Promise<User | null> {
+        return (await this.userRepository.findOne(userId)) ?? null
     }
 
-    async getUserByUsername(username: string) {
-        return this.userRepository.findOneOrFail({ username })
+    async getUserByUsername(username: string): Promise<User | null> {
+        return (await this.userRepository.findOne({ username })) ?? null
     }
 
     async getUserInfo(userId: string) {
         const user = await this.getUserById(userId)
+
+        if (!user) throw new BadRequestException(`User ${userId} not found`)
 
         return {
             donateUrl: `http://localhost:8080/donate/${user.username}`,

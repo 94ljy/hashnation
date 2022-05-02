@@ -8,12 +8,12 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from 'typeorm'
-import { UserEntity } from './user.entity'
+import { User } from './user.entity'
 
 // export type walletType = 'sol'
 
 @Entity({ name: 'user_wallet' })
-export class UserWalletEntity {
+export class UserWallet {
     @PrimaryGeneratedColumn('uuid')
     public id: string
 
@@ -37,6 +37,6 @@ export class UserWalletEntity {
     @Column()
     public userId: string
 
-    @ManyToOne(() => UserEntity, (user) => user.wallets)
-    public user: UserEntity
+    @ManyToOne(() => User, (user) => user.wallets)
+    public user: User
 }

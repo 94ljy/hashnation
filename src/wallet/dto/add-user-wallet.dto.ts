@@ -1,5 +1,16 @@
+import { IsNotEmpty, IsString } from 'class-validator'
+
 export class AddUserWalletDto {
-    // type: string
+    @IsString()
+    @IsNotEmpty()
     address: string
+
+    @IsString()
+    @IsNotEmpty()
     signature: string
+}
+
+export class AddUserWalletResponseDto {
+    walletId: string
+    address: string
 }

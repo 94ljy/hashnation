@@ -9,6 +9,7 @@ import {
 import { Server, Socket } from 'socket.io'
 import { UserService } from '../user/user.service'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
+import { Donation } from '../entities/donation.entity'
 
 @WebSocketGateway()
 export class WidgetGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -31,16 +32,28 @@ export class WidgetGateway implements OnGatewayConnection, OnGatewayDisconnect {
     async handleConnection(client: Socket, ...args: any[]) {
         const username = client.handshake.auth.username
 
-        // 유저 검증 과정은 변경이 필요함 > 소켓이 연결되기전에 확인
-        try {
-            const user = await this.userService.getUserByUsername(username)
+        const user = await this.userService.getUserByUsername(username)
+
+        // 유저 검증 과정은 변경이 필요함 소켓이 연결되기전에 확인
+        if (!user) {
+            this.logger.log(`client id:${client.id} failed to connect`)
+            client.disconnect()
+        } else {
             client.join(this.getCreatorRoomname(user.id))
 
             this.logger.log(`client id:${client.id} connected`)
-        } catch (e) {
-            console.log('user not found')
-            client.disconnect()
         }
+
+        // 유저 검증 과정은 변경이 필요함 소켓이 연결되기전에 확인
+        // try {
+        //     const user = await this.userService.getUserByUsername(username)
+        //     client.join(this.getCreatorRoomname(user.id))
+
+        //     this.logger.log(`client id:${client.id} connected`)
+        // } catch (e) {
+        //     this.logger.log(`client id:${client.id} failed to connect`)
+        //     client.disconnect()
+        // }
     }
 
     handleDisconnect(client: Socket) {
@@ -48,8 +61,10 @@ export class WidgetGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
 
     @OnEvent('widget.donate')
-    donateEvent(payload: any) {
-        const { toUserId, ...info } = payload
+    donateEvent(donation: Donation) {
+        // const { toUserId, ...info } = payload
+
+        const { toUserId, toUser, ...info } = donation
 
         this.getCreatorRoom(toUserId).emit('donation', info)
     }

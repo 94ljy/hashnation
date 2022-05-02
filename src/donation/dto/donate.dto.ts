@@ -1,4 +1,4 @@
-import { IsNotEmpty, IsString } from 'class-validator'
+import { IsNotEmpty, IsString, MaxLength } from 'class-validator'
 
 export class DonateDto {
     @IsString()
@@ -11,5 +11,6 @@ export class DonateDto {
 
     @IsString()
     @IsNotEmpty()
+    @MaxLength(50)
     message: string
 }

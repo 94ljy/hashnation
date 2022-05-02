@@ -6,7 +6,7 @@ import {
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { DonationEntity, DonationStatus } from '../../entities/donation.entity'
+import { Donation, DonationStatus } from '../../entities/donation.entity'
 import {
     clusterApiUrl,
     Connection,
@@ -19,9 +19,8 @@ import { ns64, struct, u32 } from '@solana/buffer-layout'
 import { UserService } from '../../user/user.service'
 import { WalletService } from '../../wallet/wallet.service'
 import { EventEmitter2 } from '@nestjs/event-emitter'
-import { ConfigType } from '@nestjs/config'
-import appConfig from '../../config/app.config'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
+import { ConfigService } from '../../config/config.service'
 
 const TRANSFER_INSTRUCTION_INDEX = 2
 
@@ -37,20 +36,22 @@ export class DonorService {
         private readonly eventEmitter: EventEmitter2,
         private readonly userService: UserService,
         private readonly walletService: WalletService,
-        @InjectRepository(DonationEntity)
-        private readonly donationRepository: Repository<DonationEntity>,
-        @Inject(appConfig.KEY)
-        private readonly appConfigService: ConfigType<typeof appConfig>,
+        @InjectRepository(Donation)
+        private readonly donationRepository: Repository<Donation>,
+        private readonly configService: ConfigService,
         @Inject(WINSTON_MODULE_NEST_PROVIDER)
         private readonly logger: LoggerService,
     ) {
         this.solanaConn = new Connection(
-            clusterApiUrl(this.appConfigService.solanaCluster as Cluster),
+            clusterApiUrl(this.configService.get('SOLANA_CLUSTER') as Cluster),
         )
     }
 
     async getCreatorInfo(username: string) {
         const user = await this.userService.getUserByUsername(username)
+
+        if (!user) throw new BadRequestException(`User ${username} not found`)
+
         const wallets = await this.walletService.getUserWallet(user.id)
 
         return {
@@ -62,7 +63,7 @@ export class DonorService {
     }
 
     verifyTransaction(transaction: Transaction) {
-        if (!transaction.verifySignatures()) {
+        if (transaction.signature === null || !transaction.verifySignatures()) {
             this.logger.error('Transaction signature verification failed')
             throw new BadRequestException(
                 'Transaction signature verification failed',
@@ -109,6 +110,9 @@ export class DonorService {
 
         const toUser = await this.userService.getUserByUsername(toUsername)
 
+        if (!toUser)
+            throw new BadRequestException(`User ${toUsername} not found`)
+
         const hasWallet = await this.walletService.hasWalletAddress(
             toUser.id,
             to,
@@ -119,7 +123,7 @@ export class DonorService {
             throw new BadRequestException(`User has no wallet address ${to}`)
         }
 
-        const donation = new DonationEntity()
+        const donation = new Donation()
         donation.txSignature = signature
         donation.message = message
         donation.fromAddress = from
@@ -147,12 +151,7 @@ export class DonorService {
                 status: DonationStatus.APPROVED,
             })
 
-            this.eventEmitter.emit('widget.donate', {
-                toUserId: donation.toUser.id,
-                from: donation.fromAddress,
-                message: donation.message,
-                lamports: donation.lamports,
-            })
+            this.eventEmitter.emit('widget.donate', donation)
         }
 
         return {

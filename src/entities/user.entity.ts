@@ -8,10 +8,10 @@ import {
     UpdateDateColumn,
 } from 'typeorm'
 import * as bcrypt from 'bcrypt'
-import { UserWalletEntity } from './wallet.entity'
+import { UserWallet } from './wallet.entity'
 
 @Entity({ name: 'user' })
-export class UserEntity {
+export class User {
     @PrimaryGeneratedColumn('uuid')
     public id: string
 
@@ -24,10 +24,10 @@ export class UserEntity {
     public updatedAt: Date
 
     @DeleteDateColumn()
-    public deletedAt?: Date | null
+    public deletedAt?: Date
 
     @Column({ nullable: true })
-    public lastLoginAt?: Date | null
+    public lastLoginAt?: Date
 
     @Column({
         type: 'varchar',
@@ -58,8 +58,8 @@ export class UserEntity {
     @Column({ nullable: false })
     isActive: boolean
 
-    @OneToMany(() => UserWalletEntity, (wallet) => wallet.user)
-    wallets: UserWalletEntity[]
+    @OneToMany(() => UserWallet, (wallet) => wallet.user)
+    wallets: UserWallet[]
 
     async setPassword(password: string) {
         this.password = await bcrypt.hash(password, 10)

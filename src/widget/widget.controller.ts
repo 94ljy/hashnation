@@ -21,4 +21,9 @@ export class WidgetController {
     async widgetSkip(@User() user: AuthenticatedUser) {
         this.widgetService.widgetSkip(user.id)
     }
+
+    @Post('/donation/test')
+    async widgetDonationTest(@User() user: AuthenticatedUser) {
+        this.widgetService.widgetDonationTest(user.id)
+    }
 }

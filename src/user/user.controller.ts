@@ -4,6 +4,7 @@ import { AuthenticatedUser } from '../common/authenticated.user'
 import { User } from '../common/user.decorator'
 import { UserService } from './user.service'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
+import { UserInfoDto } from './dto/user-info.dto'
 
 @Controller('user')
 export class UserController {
@@ -15,17 +16,17 @@ export class UserController {
     ) {}
 
     @Get('/info')
-    async getUserInfo(@User() user: AuthenticatedUser) {
+    async getUserInfo(@User() user: AuthenticatedUser): Promise<UserInfoDto> {
         return this.userService.getUserInfo(user.id)
     }
 
-    @Public()
-    @Get('/test')
-    async test() {
-        this.logger.log('test')
-        this.logger.error('test')
-        this.logger2.log('test2')
-        this.logger2.error(process.pid)
-        return {}
-    }
+    // @Public()
+    // @Get('/test')
+    // async test() {
+    //     this.logger.log('test')
+    //     this.logger.error('test')
+    //     this.logger2.log('test2')
+    //     this.logger2.error(process.pid)
+    //     return {}
+    // }
 }
