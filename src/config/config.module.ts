@@ -7,7 +7,7 @@ import { appConfigValidate } from './app.config'
 @Module({
     imports: [
         BaseConfigModule.forRoot({
-            envFilePath: ['.env.local', '.env.pord'],
+            envFilePath: ['.env.local', '.env.prod'],
             validate: appConfigValidate,
             // v
         }),
