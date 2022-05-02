@@ -1,70 +1,75 @@
 import {
     BadRequestException,
+    Inject,
     Injectable,
-    NotFoundException,
+    LoggerService,
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
+import { User } from 'src/entities/user.entity'
 import { Repository } from 'typeorm'
-import { UserEntity, userUniqueKeys } from './entity/user.entity'
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 
 @Injectable()
 export class UserService {
     constructor(
-        @InjectRepository(UserEntity)
-        private readonly userRopository: Repository<UserEntity>,
+        @InjectRepository(User)
+        private readonly userRepository: Repository<User>,
+        @Inject(WINSTON_MODULE_NEST_PROVIDER)
+        private readonly logger: LoggerService,
     ) {}
 
-    async createUser(publicKey: string) {
-        const user = await this.userRopository.findOne({
-            where: {
-                publicKey: publicKey,
-            },
-        })
+    async createUser(username: string, password: string, email: string) {
+        const findedUser = this.getUserByUsername(username)
 
-        if (user) throw new BadRequestException('invalide public key')
+        if (findedUser === null) {
+            throw new BadRequestException(`Username ${username} already exists`)
+        }
 
-        const newUser = new UserEntity()
+        const user = new User()
+        user.username = username
+        await user.setPassword(password)
+        user.email = email
+        user.isEmailVerified = false
+        user.isActive = true
 
-        newUser.username = publicKey
-        newUser.publicKey = publicKey
-        newUser.createdAt = new Date()
-
-        await this.userRopository.save(newUser)
-    }
-
-    async getUser(key: userUniqueKeys, value: string) {
-        const user = await this.userRopository.findOneOrFail({
-            [key]: value,
-        })
-
-        return {
-            id: user.id,
-            publicKey: user.publicKey,
-            username: user.username,
-            createdAt: user.createdAt,
-            lastLoginAt: user.lastLoginAt,
+        try {
+            const newUser = await this.userRepository.save(user)
+            this.logger.log(`Created user ${username}`)
+            return newUser
+        } catch (err) {
+            this.logger.error(`Error creating user ${username}`)
+            this.logger.error(err)
         }
     }
 
-    // async getUserById(id: string) {
-    //     const user = await this.userRopository.findOneOrFail({
-    //         id: id,
-    //     })
+    async getUserById(userId: string): Promise<User | null> {
+        return (await this.userRepository.findOne(userId)) ?? null
+    }
 
-    //     return {
-    //         id: user.id,
-    //         publicKey: user.publicKey,
-    //     }
-    // }
+    async getUserByUsername(username: string): Promise<User | null> {
+        return (await this.userRepository.findOne({ username })) ?? null
+    }
 
-    // async getUser(publicKey: string) {
-    //     const user = await this.userRopository.findOneOrFail({
-    //         publicKey: publicKey,
-    //     })
+    async getUserInfo(userId: string) {
+        const user = await this.getUserById(userId)
 
-    //     return {
-    //         id: user.id,
-    //         publicKey: user.publicKey,
-    //     }
-    // }
+        if (!user) throw new BadRequestException(`User ${userId} not found`)
+
+        return {
+            donateUrl: `http://localhost:8080/donate/${user.username}`,
+            widgetUrl: `http://localhost:8080/widget/${user.username}`,
+        }
+    }
+
+    async updateUserLastLogin(userId: string) {
+        try {
+            await this.userRepository.update(userId, {
+                lastLoginAt: new Date(),
+            })
+            this.logger.log(`Updated last login for user ${userId}`)
+        } catch (err) {
+            this.logger.error(`Error updating user ${userId} last login`)
+            this.logger.error(err)
+        }
+    }
 }

@@ -1,70 +1,47 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
-import { UserService } from '../../user/user.service'
+import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { Repository } from 'typeorm'
-import { DonationEntity } from '../entity/donation.entity'
+import { Donation, DonationStatus } from '../../entities/donation.entity'
 
 @Injectable()
 export class DonationService {
     constructor(
-        @InjectRepository(DonationEntity)
-        private readonly donationRepository: Repository<DonationEntity>,
-        private readonly userService: UserService,
+        private readonly eventEmitter: EventEmitter2,
+        @InjectRepository(Donation)
+        private readonly donationRepository: Repository<Donation>,
     ) {}
 
-    async getDonation(userId: string) {
-        const user = await this.userService.getUser('id', userId)
+    async getDonations(
+        userId: string,
+        page: number,
+        limit: number,
+    ): Promise<[Donation[], number]> {
+        return this.donationRepository.findAndCount({
+            where: { toUserId: userId },
+            skip: (page - 1) * limit,
+            take: limit,
+            order: {
+                createdAt: 'DESC',
+            },
+        })
+    }
 
+    async replayDonation(userId: string, donationId: string) {
         const donation = await this.donationRepository.findOne({
             where: {
-                isBrodcasted: false,
-                to: {
-                    id: user.id,
-                },
-            },
-            order: {
-                createdAt: 'ASC',
+                id: donationId,
+                toUserId: userId,
             },
         })
 
-        if (!donation) throw new NotFoundException()
+        if (!donation) throw new BadRequestException('Donation not found')
 
-        return donation
-    }
-
-    async getD(userId: string) {
-        const user = await this.userService.getUser('id', userId)
-
-        return {
-            username: user.username,
-            donationUrl: `http://localhost:8080/donate/${user.publicKey}`,
+        if (donation.status !== DonationStatus.APPROVED) {
+            throw new BadRequestException('Donation is not approved')
         }
-    }
 
-    // async getUserInfo(publicKey: string) {
-    //     const user = await this.userService.getUser('publicKey', publicKey)
-
-    //     return {
-    //         publicKey: user.publicKey,
-    //         username: user.username,
-    //     }
-    // }
-
-    async donationBrodcastSuccess(userId: string, donationId: string) {
-        const result = await this.donationRepository
-            .createQueryBuilder()
-            .update()
-            .set({
-                isBrodcasted: true,
-            })
-            .where('id = :id AND toId = :toId', {
-                id: donationId,
-                toId: userId,
-            })
-            .execute()
-
-        if (result.affected === 0) {
-            throw new NotFoundException()
-        }
+        this.eventEmitter.emit('widget.donate', donation)
     }
 }

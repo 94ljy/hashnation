@@ -1,28 +1,42 @@
+import 'reflect-metadata'
 import { ValidationPipe } from '@nestjs/common'
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
-import CookieParser from 'cookie-parser'
 import session from 'express-session'
 import passport from 'passport'
 import FileStore from 'session-file-store'
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger'
+import { ConfigService } from './config/config.service'
 
 const f = FileStore(session)
 
 async function bootstrap() {
     const app = await NestFactory.create(AppModule)
-    // app.useGlobalPipes(
-    //     new ValidationPipe({
-    //         transform: true,
-    //     }),
-    // )
+
+    const configService = app.get<ConfigService>(ConfigService)
+
+    app.setGlobalPrefix('/v1/api/')
+
+    app.useGlobalPipes(
+        new ValidationPipe({
+            disableErrorMessages:
+                configService.get('NODE_ENV') === 'production',
+            // whitelist: true,
+            forbidNonWhitelisted: true,
+            transform: true,
+            transformOptions: {
+                enableImplicitConversion: true,
+            },
+        }),
+    )
 
     app.use(
         session({
-            secret: 'secret_test',
-            resave: true,
-            saveUninitialized: true,
+            secret: configService.get('COOKIE_SECRET'),
+            resave: false,
+            saveUninitialized: false,
             cookie: {
-                maxAge: 1000 * 60 * 60 * 24,
+                httpOnly: true,
             },
             // store: new RedisStore({ client: client }),
             store: new f({
@@ -30,6 +44,22 @@ async function bootstrap() {
             }),
         }),
     )
+
+    if (configService.get('NODE_ENV') === 'development') {
+        SwaggerModule.setup(
+            'api',
+            app,
+            SwaggerModule.createDocument(
+                app,
+                new DocumentBuilder()
+                    .setTitle('Hashnation API')
+                    .setDescription('Hashnation API')
+                    .setVersion('1.0')
+                    .addCookieAuth()
+                    .build(),
+            ),
+        )
+    }
 
     app.use(passport.initialize())
     app.use(passport.session())

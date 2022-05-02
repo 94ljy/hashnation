@@ -8,8 +8,10 @@ import {
     UnauthorizedException,
     UseGuards,
 } from '@nestjs/common'
+import { AuthenticatedUser } from '../common/authenticated.user'
+import { User } from '../common/user.decorator'
 import { AuthService } from './auth.service'
-import { UserSignupDto } from './dto/user-signup.dto'
+import { UserSignUpDto } from './dto/user-signup.dto'
 import { Public } from './guard/auth.guard'
 import { LoginGuard } from './guard/login.guard'
 
@@ -17,34 +19,32 @@ import { LoginGuard } from './guard/login.guard'
 export class AuthController {
     constructor(private readonly authService: AuthService) {}
 
-    // @UseGuards(AuthGuard('local'))
     @Public()
     @UseGuards(LoginGuard)
-    @Post('/signin')
-    async signin(@Req() req: any) {
+    @Post('/sign-in')
+    async signin(@Req() req: any, @User() user: AuthenticatedUser) {
+        try {
+            await this.authService.updateUserLastLogin(user.id)
+        } catch (e) {
+            req.logout()
+        }
         return {}
     }
 
     @Public()
-    @Post('signup')
-    async signup(@Body() userSignupDto: UserSignupDto) {
-        await this.authService.signup(
-            userSignupDto.publicKey,
-            userSignupDto.signature,
+    @Post('sign-up')
+    async signup(@Body() userSignupDto: UserSignUpDto) {
+        await this.authService.signUp(
+            userSignupDto.username,
+            userSignupDto.password,
+            userSignupDto.email,
         )
         return {
             message: 'successfully signed up',
         }
     }
 
-    @Public()
-    @Get('/signup/check-publickey/:publicKey')
-    async checkkey(@Param('publicKey') publicKey: string) {
-        return this.authService.checkPulbicKey(publicKey)
-    }
-
-    @Public()
-    @Post('/signout')
+    @Post('/sign-out')
     async signout(@Req() req: any) {
         req.logout()
         return {}
@@ -52,8 +52,6 @@ export class AuthController {
 
     @Get('/me')
     async me() {
-        return {
-            message: 'successfully logged in',
-        }
+        return {}
     }
 }

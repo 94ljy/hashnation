@@ -12,12 +12,10 @@ import {
 } from '@solana/web3.js'
 import nacl from 'tweetnacl'
 import base58 from 'bs58'
-import { equal } from 'assert'
-import session from 'express-session'
-import passport from 'passport'
-import FileStore from 'session-file-store'
+import assert, { equal } from 'assert'
 
-const f = FileStore(session)
+import { getAuth, signInWithEmailAndPassword } from 'firebase/auth'
+import { initializeApp } from 'firebase/app'
 
 // const key = Keypair.fromSecretKey(
 //     Buffer.from([
@@ -51,32 +49,20 @@ describe('AppController (e2e)', () => {
 
         app = moduleFixture.createNestApplication()
 
-        app.use(
-            session({
-                secret: 'secret_test',
-                resave: true,
-                saveUninitialized: true,
-                cookie: {
-                    maxAge: 1000 * 60 * 60 * 24,
-                },
-                // store: new RedisStore({ client: client }),
-                store: new f({
-                    path: './tmp/sessions',
-                }),
-            }),
-        )
-
-        app.use(passport.initialize())
-        app.use(passport.session())
-
         await app.init()
+
+        initializeApp({
+            apiKey: 'AIzaSyDw4jA-SmqEpDsEMfnvA_CwAUIhyMbr4k4',
+            authDomain: 'hashnation-6bc54.firebaseapp.com',
+            projectId: 'hashnation-6bc54',
+            storageBucket: 'hashnation-6bc54.appspot.com',
+            messagingSenderId: '793537921258',
+            appId: '1:793537921258:web:f849c5b68b40fe84d15793',
+            measurementId: 'G-NL419ZZMY9',
+        })
 
         solanaConn = new Connection(clusterApiUrl('devnet'))
         newKey = Keypair.generate()
-
-        agent = request.agent(app.getHttpServer())
-
-        console.log(newKey.publicKey.toString())
     })
 
     // it('/donation/recipient (POST)', async () => {
@@ -90,118 +76,141 @@ describe('AppController (e2e)', () => {
     // })
 
     describe('signup', () => {
-        it('/auth/signup (POST)', (done) => {
-            request(app.getHttpServer())
-                .post('/auth/signup')
-                .send({
-                    publicKey: newKey.publicKey.toString(),
-                    signature: base58.encode(
-                        nacl.sign.detached(
-                            new TextEncoder().encode(
-                                newKey.publicKey.toString(),
-                            ),
-                            newKey.secretKey,
-                        ),
-                    ),
-                })
-                .expect(201, done)
+        it('/auth/signup (POST)', async () => {
+            const auth = getAuth()
+
+            const result = await signInWithEmailAndPassword(
+                auth,
+                'puregod27@gmail.com',
+                'qwer1234',
+            )
+
+            equal(result.user.email, 'puregod27@gmail.com')
         })
     })
 
-    describe('signin', () => {
-        it('/auth/signin (POST)', async () => {
-            const publicKey = newKey.publicKey.toString()
-            const timestamp = Date.now()
+    describe('creator get fail', () => {
+        it('/creator (GET)', async () => {
+            const auth = getAuth()
+            const token = await auth.currentUser.getIdToken()
 
-            const message = JSON.stringify({
-                publicKey,
-                timestamp,
-            })
-
-            await agent
-                .post('/auth/signin')
-                .send({
-                    message: message,
-                    signature: base58.encode(
-                        nacl.sign.detached(
-                            new TextEncoder().encode(message),
-                            newKey.secretKey,
-                        ),
-                    ),
-                })
-                .expect(201)
-                .then()
-
-            return agent.get('/auth/me').expect(200).then()
+            return request(app.getHttpServer())
+                .get('/creator')
+                .set('Authorization', `Bearer ${token}`)
+                .expect(404)
         })
     })
 
-    describe('donate', () => {
-        it('/donation/danate (POST)', async () => {
-            const from = Keypair.generate()
+    describe('create creator', () => {
+        it('/creator (POST', async () => {
+            const auth = getAuth()
+            const token = await auth.currentUser.getIdToken()
 
-            const a = await solanaConn.requestAirdrop(
-                from.publicKey,
-                LAMPORTS_PER_SOL,
-            )
-
-            await solanaConn.confirmTransaction(a)
-
-            const trans = new Transaction()
-
-            trans.add(
-                SystemProgram.transfer({
-                    fromPubkey: from.publicKey,
-                    toPubkey: newKey.publicKey,
-                    lamports: LAMPORTS_PER_SOL / 1000,
-                }),
-            )
-
-            trans.recentBlockhash = (
-                await solanaConn.getLatestBlockhash()
-            ).blockhash
-            trans.feePayer = from.publicKey
-
-            trans.sign(from)
-
-            const rawTx = base58.encode(trans.serialize())
-
-            // const txSig = await solanaConn.sendTransaction(trans, [from])
-
-            // await solanaConn.confirmTransaction(txSig)
-
-            let tx = ''
-
-            await request(app.getHttpServer())
-                .post('/donation/donate')
-                .send({
-                    rawTransaction: rawTx,
-                    message: 'testt',
-                })
+            return request(app.getHttpServer())
+                .post('/creator')
+                .set('Authorization', `Bearer ${token}`)
+                .send({ username: 'test' })
                 .expect(201)
                 .then((res) => {
-                    tx = res.body.tx
+                    equal(res.body.message, 'success')
                 })
-
-            // let donationId = ''
-
-            // await agent
-            //     .get('/donation')
-            //     .expect(200)
-            //     .then((res) => {
-            //         equal(res.body.txSignature, tx)
-            //         donationId = res.body.id
-            //     })
-
-            // await agent
-            //     .post('/donation/broadcast/success')
-            //     .send({
-            //         donationId,
-            //     })
-            //     .expect(201)
-            //     .then()
-        }, 60000)
+        })
     })
+
+    // describe('signin', () => {
+    //     it('/auth/signin (POST)', async () => {
+    //         const publicKey = newKey.publicKey.toString()
+    //         const timestamp = Date.now()
+
+    //         const message = JSON.stringify({
+    //             publicKey,
+    //             timestamp,
+    //         })
+
+    //         await agent
+    //             .post('/auth/signin')
+    //             .send({
+    //                 message: message,
+    //                 signature: base58.encode(
+    //                     nacl.sign.detached(
+    //                         new TextEncoder().encode(message),
+    //                         newKey.secretKey,
+    //                     ),
+    //                 ),
+    //             })
+    //             .expect(201)
+    //             .then()
+
+    //         return agent.get('/auth/me').expect(200).then()
+    //     })
+    // })
+
+    // describe('donate', () => {
+    //     it('/donation/danate (POST)', async () => {
+    //         const from = Keypair.generate()
+
+    //         const a = await solanaConn.requestAirdrop(
+    //             from.publicKey,
+    //             LAMPORTS_PER_SOL,
+    //         )
+
+    //         await solanaConn.confirmTransaction(a)
+
+    //         const trans = new Transaction()
+
+    //         trans.add(
+    //             SystemProgram.transfer({
+    //                 fromPubkey: from.publicKey,
+    //                 toPubkey: newKey.publicKey,
+    //                 lamports: LAMPORTS_PER_SOL / 1000,
+    //             }),
+    //         )
+
+    //         trans.recentBlockhash = (
+    //             await solanaConn.getLatestBlockhash()
+    //         ).blockhash
+    //         trans.feePayer = from.publicKey
+
+    //         trans.sign(from)
+
+    //         const rawTx = base58.encode(trans.serialize())
+
+    //         // const txSig = await solanaConn.sendTransaction(trans, [from])
+
+    //         // await solanaConn.confirmTransaction(txSig)
+
+    //         let tx = ''
+
+    //         await request(app.getHttpServer())
+    //             .post('/donation/donate')
+    //             .send({
+    //                 rawTransaction: rawTx,
+    //                 message: 'testt',
+    //             })
+    //             .expect(201)
+    //             .then((res) => {
+    //                 tx = res.body.tx
+    //             })
+
+    //         // let donationId = ''
+
+    //         // await agent
+    //         //     .get('/donation')
+    //         //     .expect(200)
+    //         //     .then((res) => {
+    //         //         equal(res.body.txSignature, tx)
+    //         //         donationId = res.body.id
+    //         //     })
+
+    //         // await agent
+    //         //     .post('/donation/broadcast/success')
+    //         //     .send({
+    //         //         donationId,
+    //         //     })
+    //         //     .expect(201)
+    //         //     .then()
+    //     }, 60000)
+    // })
 
     // describe('getDonations', () => {
     //     it('/donation (GET)', () => {

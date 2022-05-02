@@ -1,18 +1,26 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import {
+    BadRequestException,
+    Inject,
+    Injectable,
+    LoggerService,
+} from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { DonationEntity, DonationStatus } from '../entity/donation.entity'
+import { Donation, DonationStatus } from '../../entities/donation.entity'
 import {
     clusterApiUrl,
     Connection,
     SystemProgram,
     Transaction,
+    Cluster,
 } from '@solana/web3.js'
 import base58 from 'bs58'
 import { ns64, struct, u32 } from '@solana/buffer-layout'
-import nacl from 'tweetnacl'
 import { UserService } from '../../user/user.service'
-import { UserEntity } from '../../user/entity/user.entity'
+import { WalletService } from '../../wallet/wallet.service'
+import { EventEmitter2 } from '@nestjs/event-emitter'
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
+import { ConfigService } from '../../config/config.service'
 
 const TRANSFER_INSTRUCTION_INDEX = 2
 
@@ -25,53 +33,106 @@ const TRANSFER_INSTRUCTION = struct<{ instruction: number; lamports: number }>([
 export class DonorService {
     private readonly solanaConn: Connection
     constructor(
-        @InjectRepository(DonationEntity)
-        private readonly donationRepository: Repository<DonationEntity>,
+        private readonly eventEmitter: EventEmitter2,
         private readonly userService: UserService,
+        private readonly walletService: WalletService,
+        @InjectRepository(Donation)
+        private readonly donationRepository: Repository<Donation>,
+        private readonly configService: ConfigService,
+        @Inject(WINSTON_MODULE_NEST_PROVIDER)
+        private readonly logger: LoggerService,
     ) {
-        this.solanaConn = new Connection(clusterApiUrl('devnet'))
+        this.solanaConn = new Connection(
+            clusterApiUrl(this.configService.get('SOLANA_CLUSTER') as Cluster),
+        )
     }
 
-    async donate(rawTransaction: string, message: string) {
-        const transaction = Transaction.from(base58.decode(rawTransaction))
+    async getCreatorInfo(username: string) {
+        const user = await this.userService.getUserByUsername(username)
+
+        if (!user) throw new BadRequestException(`User ${username} not found`)
+
+        const wallets = await this.walletService.getUserWallet(user.id)
+
+        return {
+            username: user.username,
+            wallets: wallets.map((item) => ({
+                address: item.address,
+            })),
+        }
+    }
+
+    verifyTransaction(transaction: Transaction) {
+        if (transaction.signature === null || !transaction.verifySignatures()) {
+            this.logger.error('Transaction signature verification failed')
+            throw new BadRequestException(
+                'Transaction signature verification failed',
+            )
+        }
 
         // tx validations
         if (transaction.instructions.length !== 1) {
-            throw new BadRequestException('Invalid tx')
+            this.logger.error('Invalid number of instructions')
+            throw new BadRequestException('Invalid number of instructions')
         }
 
         const instruction = transaction.instructions[0]
 
         // tx validations
-        if (!SystemProgram.programId.equals(instruction.programId))
+        if (!SystemProgram.programId.equals(instruction.programId)) {
+            this.logger.error('Invalid programId')
             throw new BadRequestException('Invalid programId')
+        }
 
         const parsedData = TRANSFER_INSTRUCTION.decode(instruction.data)
 
         // tx validations
-        if (parsedData.instruction !== TRANSFER_INSTRUCTION_INDEX)
+        if (parsedData.instruction !== TRANSFER_INSTRUCTION_INDEX) {
+            this.logger.error('Invalid instruction index')
             throw new BadRequestException('Invalid instruction index')
+        }
 
         const from = instruction.keys[0]
         const to = instruction.keys[1]
 
-        const toUser = await this.userService.getUser(
-            'publicKey',
-            to.pubkey.toString(),
+        return {
+            signature: base58.encode(transaction.signature),
+            from: from.pubkey.toString(),
+            to: to.pubkey.toString(),
+            lamports: parsedData.lamports,
+        }
+    }
+
+    async donate(toUsername: string, rawTransaction: string, message: string) {
+        const transaction = Transaction.from(base58.decode(rawTransaction))
+        const { signature, from, to, lamports } =
+            this.verifyTransaction(transaction)
+
+        const toUser = await this.userService.getUserByUsername(toUsername)
+
+        if (!toUser)
+            throw new BadRequestException(`User ${toUsername} not found`)
+
+        const hasWallet = await this.walletService.hasWalletAddress(
+            toUser.id,
+            to,
         )
 
-        const donation = await this.donationRepository.save({
-            txSignature: base58.encode(transaction.signature),
-            message,
-            createdAt: new Date(),
-            from: from.pubkey.toString(),
-            lamports: parsedData.lamports,
-            status: DonationStatus.PENDING,
-            isBrodcasted: false,
-            toId: toUser.id,
-        })
+        if (!hasWallet) {
+            this.logger.error(`User does not have a wallet address ${to}`)
+            throw new BadRequestException(`User has no wallet address ${to}`)
+        }
 
-        // transaction validate complete
+        const donation = new Donation()
+        donation.txSignature = signature
+        donation.message = message
+        donation.fromAddress = from
+        donation.toAddress = to
+        donation.toUser = toUser
+        donation.status = DonationStatus.PENDING
+        donation.lamports = lamports
+
+        await this.donationRepository.save(donation)
 
         const tx = await this.solanaConn.sendRawTransaction(
             transaction.serialize(),
@@ -80,91 +141,22 @@ export class DonorService {
         const result = await this.solanaConn.confirmTransaction(tx)
 
         if (result.value.err) {
+            this.logger.error(`tx:${tx} Transaction failed ${result.value.err}`)
+
             await this.donationRepository.update(donation.id, {
                 status: DonationStatus.REJECTED,
             })
-            throw new BadRequestException(result.value.err)
         } else {
             await this.donationRepository.update(donation.id, {
                 status: DonationStatus.APPROVED,
             })
+
+            this.eventEmitter.emit('widget.donate', donation)
         }
 
         return {
-            tx: donation.txSignature,
+            err: result.value.err,
+            tx: tx,
         }
     }
-
-    async getCreatorInfoByPublicKey(publicKey: string) {
-        const user = await this.userService.getUser('publicKey', publicKey)
-
-        return {
-            publicKey: user.publicKey,
-            username: user.username,
-        }
-    }
-
-    // // TODO: add invalid to public key
-    // async donate(txSignature: string, message: string, signature: string) {
-    //     const txResponse = await this.solanaConn.getTransaction(txSignature)
-
-    //     // tx not found
-    //     if (!txResponse) throw new BadRequestException('Invalid tx signature')
-
-    //     // tx error
-    //     if (txResponse.meta.err) throw new BadRequestException('tx error')
-
-    //     // tx invalide
-    //     if (txResponse.transaction.message.instructions.length !== 1)
-    //         throw new BadRequestException('Invalid tx')
-
-    //     const instruction = txResponse.transaction.message.instructions[0]
-
-    //     const instructionProgramId =
-    //         txResponse.transaction.message.accountKeys[
-    //             instruction.programIdIndex
-    //         ]
-
-    //     // tx not from system program
-    //     if (!SystemProgram.programId.equals(instructionProgramId))
-    //         throw new BadRequestException('Invalid programId')
-
-    //     const parsedData = TRANSFER_INSTRUCTION.decode(
-    //         base58.decode(instruction.data),
-    //     )
-
-    //     // tx not transfer instruction
-    //     if (parsedData.instruction !== TRANSFER_INSTRUCTION_INDEX)
-    //         throw new BadRequestException('Invalid instruction index')
-
-    //     const fromKey =
-    //         txResponse.transaction.message.accountKeys[instruction.accounts[0]]
-
-    //     const toKey =
-    //         txResponse.transaction.message.accountKeys[instruction.accounts[1]]
-
-    //     if (
-    //         !nacl.sign.detached.verify(
-    //             new TextEncoder().encode(txSignature),
-    //             base58.decode(signature),
-    //             fromKey.toBuffer(),
-    //         )
-    //     )
-    //         throw new BadRequestException('Invalid signature')
-
-    //     const lamports = parsedData.lamports
-
-    //     const to = await this.userService.getUser('publicKey', toKey.toString())
-
-    //     const donation = new DonationEntity()
-    //     donation.txSignature = txSignature
-    //     donation.message = message
-    //     donation.createdAt = new Date()
-    //     donation.from = fromKey.toString()
-    //     donation.lamports = lamports
-    //     donation.isBrodcasted = false
-    //     donation.toId = to.id
-
-    //     await this.donationRepository.save(donation)
-    // }
 }
