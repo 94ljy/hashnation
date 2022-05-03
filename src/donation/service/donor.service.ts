@@ -21,13 +21,14 @@ import { WalletService } from '../../wallet/wallet.service'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 import { ConfigService } from '../../config/config.service'
+import { WIDGET_DONATE_EVENT } from '../../event/event'
 
-const TRANSFER_INSTRUCTION_INDEX = 2
+export const TRANSFER_INSTRUCTION_INDEX = 2
 
-const TRANSFER_INSTRUCTION = struct<{ instruction: number; lamports: number }>([
-    u32('instruction'),
-    ns64('lamports'),
-])
+export const TRANSFER_INSTRUCTION = struct<{
+    instruction: number
+    lamports: number
+}>([u32('instruction'), ns64('lamports')])
 
 @Injectable()
 export class DonorService {
@@ -103,8 +104,20 @@ export class DonorService {
         }
     }
 
+    rawTransactionToTransaction(rawTransaction: string) {
+        return Transaction.from(base58.decode(rawTransaction))
+    }
+
+    async sendRawTransaction(rawTransaction: Buffer) {
+        return this.solanaConn.sendRawTransaction(rawTransaction)
+    }
+
+    async confirmTransaction(tx: string) {
+        return this.solanaConn.confirmTransaction(tx)
+    }
+
     async donate(toUsername: string, rawTransaction: string, message: string) {
-        const transaction = Transaction.from(base58.decode(rawTransaction))
+        const transaction = this.rawTransactionToTransaction(rawTransaction)
         const { signature, from, to, lamports } =
             this.verifyTransaction(transaction)
 
@@ -120,7 +133,9 @@ export class DonorService {
 
         if (!hasWallet) {
             this.logger.error(`User does not have a wallet address ${to}`)
-            throw new BadRequestException(`User has no wallet address ${to}`)
+            throw new BadRequestException(
+                `User does not have a wallet address ${to}`,
+            )
         }
 
         const donation = new Donation()
@@ -134,11 +149,9 @@ export class DonorService {
 
         await this.donationRepository.save(donation)
 
-        const tx = await this.solanaConn.sendRawTransaction(
-            transaction.serialize(),
-        )
+        const tx = await this.sendRawTransaction(transaction.serialize())
 
-        const result = await this.solanaConn.confirmTransaction(tx)
+        const result = await this.confirmTransaction(tx)
 
         if (result.value.err) {
             this.logger.error(`tx:${tx} Transaction failed ${result.value.err}`)
@@ -151,7 +164,7 @@ export class DonorService {
                 status: DonationStatus.APPROVED,
             })
 
-            this.eventEmitter.emit('widget.donate', donation)
+            this.eventEmitter.emit(WIDGET_DONATE_EVENT, donation)
         }
 
         return {
