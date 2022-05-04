@@ -16,20 +16,21 @@ export enum DonationStatus {
 }
 
 // @Index('donation_user_id_index', ['userId'], { unique: true })
-@Entity({
-    name: 'donation',
-})
+
 // @Index('donation_created_at_index', ['createdAt'])
 // @Index('donation_user_id_index', ['toUserId'])
 @Index('donation_user_id_and_created_at_index', ['toUserId', 'createdAt'])
 @Index('donation_user_id_and_status_index', ['toUserId', 'status'])
 // @Index('donation_tx_signature_index', ['txSignature'], { unique: true })
 @Index('donation_from_address_index', ['fromAddress'])
+@Entity({
+    name: 'donation',
+})
 export class Donation {
-    @PrimaryGeneratedColumn('uuid')
+    @PrimaryGeneratedColumn('uuid', { name: 'id' })
     id: string
 
-    @CreateDateColumn()
+    @CreateDateColumn({ name: 'created_at' })
     createdAt: Date
 
     @Column({
@@ -37,18 +38,21 @@ export class Donation {
         length: 255,
         nullable: false,
         unique: true,
+        name: 'tx_signature',
     })
     txSignature: string
 
     @Column({
         type: 'varchar',
         nullable: false,
+        name: 'from_address',
     })
     fromAddress: string
 
     @Column({
         type: 'varchar',
         nullable: false,
+        name: 'to_address',
     })
     toAddress: string
 
@@ -56,12 +60,14 @@ export class Donation {
         length: 255,
         type: 'varchar',
         nullable: false,
+        name: 'message',
     })
     message: string
 
     @Column({
         type: 'integer',
         nullable: false,
+        name: 'lamports',
     })
     lamports: number
 
@@ -69,6 +75,7 @@ export class Donation {
         type: 'integer',
         nullable: false,
         default: DonationStatus.PENDING,
+        name: 'status',
     })
     status: DonationStatus
 
@@ -79,10 +86,9 @@ export class Donation {
     // })
     // isBrodcasted: boolean
 
-    @Column()
+    @Column({ name: 'to_user_id' })
     toUserId: string
 
-    @Index()
     @ManyToOne((type) => User)
     toUser: User
 }

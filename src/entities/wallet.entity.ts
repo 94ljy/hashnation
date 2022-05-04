@@ -14,27 +14,27 @@ import { User } from './user.entity'
 
 @Entity({ name: 'user_wallet' })
 export class UserWallet {
-    @PrimaryGeneratedColumn('uuid')
+    @PrimaryGeneratedColumn('uuid', { name: 'id' })
     public id: string
 
     // @Column({ nullable: false })
-    @CreateDateColumn({})
+    @CreateDateColumn({ name: 'created_at' })
     public createdAt: Date
 
     // @Column({ nullable: false })
-    @UpdateDateColumn()
+    @UpdateDateColumn({ name: 'updated_at' })
     public updatedAt: Date
 
-    @DeleteDateColumn()
+    @DeleteDateColumn({ name: 'deleted_at' })
     public deletedAt?: Date | null
 
     // @Column()
     // public type: walletType
 
-    @Column()
+    @Column({ nullable: false, name: 'address' })
     public address: string
 
-    @Column()
+    @Column({ nullable: false, name: 'user_id' })
     public userId: string
 
     @ManyToOne(() => User, (user) => user.wallets)

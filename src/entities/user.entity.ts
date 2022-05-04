@@ -12,21 +12,21 @@ import { UserWallet } from './wallet.entity'
 
 @Entity({ name: 'user' })
 export class User {
-    @PrimaryGeneratedColumn('uuid')
+    @PrimaryGeneratedColumn('uuid', { name: 'id' })
     public id: string
 
     // @Column({ nullable: false })
-    @CreateDateColumn({})
+    @CreateDateColumn({ name: 'created_at' })
     public createdAt: Date
 
     // @Column({ nullable: false })
-    @UpdateDateColumn()
+    @UpdateDateColumn({ name: 'updated_at' })
     public updatedAt: Date
 
-    @DeleteDateColumn()
+    @DeleteDateColumn({ name: 'deleted_at' })
     public deletedAt?: Date
 
-    @Column({ nullable: true })
+    @Column({ nullable: true, name: 'last_login_at' })
     public lastLoginAt?: Date
 
     @Column({
@@ -34,6 +34,7 @@ export class User {
         length: 255,
         nullable: false,
         unique: true,
+        name: 'username',
     })
     public username: string
 
@@ -41,6 +42,7 @@ export class User {
         type: 'varchar',
         length: 255,
         nullable: false,
+        name: 'password',
     })
     private password: string
 
@@ -49,13 +51,14 @@ export class User {
         length: 255,
         nullable: false,
         unique: true,
+        name: 'email',
     })
     public email: string
 
-    @Column({ nullable: false })
+    @Column({ nullable: false, name: 'is_email_verified' })
     isEmailVerified: boolean
 
-    @Column({ nullable: false })
+    @Column({ nullable: false, name: 'is_active' })
     isActive: boolean
 
     @OneToMany(() => UserWallet, (wallet) => wallet.user)
