@@ -3,6 +3,7 @@ import {
     CreateDateColumn,
     DeleteDateColumn,
     Entity,
+    Index,
     ManyToOne,
     PrimaryColumn,
     PrimaryGeneratedColumn,
@@ -12,8 +13,9 @@ import { User } from './user.entity'
 
 // export type walletType = 'sol'
 
-@Entity({ name: 'user_wallet' })
-export class UserWallet {
+@Index()
+@Entity({ name: 'wallet' })
+export class Wallet {
     @PrimaryGeneratedColumn('uuid', { name: 'id' })
     public id: string
 
@@ -31,6 +33,7 @@ export class UserWallet {
     // @Column()
     // public type: walletType
 
+    @Index()
     @Column({ nullable: false, name: 'address' })
     public address: string
 

@@ -6,14 +6,15 @@ import base58 from 'bs58'
 import { randomUUID } from 'crypto'
 import nacl from 'tweetnacl'
 import { Repository } from 'typeorm'
-import { UserWallet } from '../entities/wallet.entity'
+import { Wallet } from '../repository/entities/wallet.entity'
+import { WalletRepository } from '../repository/wallet.repository'
 import { UserService } from '../user/user.service'
 import { CREATE_USER_WALLSET_MESSAGE, WalletService } from './wallet.service'
 
 describe('WalletService', () => {
     let walletService: WalletService
     let userService: UserService
-    let userWalletRepository: Repository<UserWallet>
+    let userWalletRepository: WalletRepository
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
@@ -25,7 +26,7 @@ describe('WalletService', () => {
                     },
                 },
                 {
-                    provide: getRepositoryToken(UserWallet),
+                    provide: WalletRepository,
                     useValue: {},
                 },
                 WalletService,
@@ -34,9 +35,7 @@ describe('WalletService', () => {
 
         walletService = module.get<WalletService>(WalletService)
         userService = module.get<UserService>(UserService)
-        userWalletRepository = module.get<Repository<UserWallet>>(
-            getRepositoryToken(UserWallet),
-        )
+        userWalletRepository = module.get<WalletRepository>(WalletRepository)
     })
 
     describe('createWallet', () => {
@@ -54,7 +53,9 @@ describe('WalletService', () => {
 
             walletService.getUserWallet = jest.fn().mockResolvedValue([])
 
-            userWalletRepository.save = jest.fn().mockResolvedValue(null)
+            userWalletRepository.createWallet = jest
+                .fn()
+                .mockResolvedValue(null)
 
             await walletService.createWallet(
                 userId,
@@ -65,8 +66,8 @@ describe('WalletService', () => {
             expect(walletService.getUserWallet).toBeCalledTimes(1)
             expect(walletService.getUserWallet).toBeCalledWith(userId)
 
-            expect(userWalletRepository.save).toBeCalledTimes(1)
-            expect(userWalletRepository.save).toBeCalledWith({
+            expect(userWalletRepository.createWallet).toBeCalledTimes(1)
+            expect(userWalletRepository.createWallet).toBeCalledWith({
                 address: publicKey.toString(),
                 user: {
                     id: userId,
@@ -123,7 +124,9 @@ describe('WalletService', () => {
 
             walletService.getUserWallet = jest.fn().mockResolvedValue([])
 
-            userWalletRepository.save = jest.fn().mockResolvedValue(null)
+            userWalletRepository.createWallet = jest
+                .fn()
+                .mockResolvedValue(null)
 
             await expect(
                 walletService.createWallet(

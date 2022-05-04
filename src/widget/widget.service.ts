@@ -2,7 +2,7 @@ import { Inject, Injectable, LoggerService } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
-import { Donation } from '../entities/donation.entity'
+import { Donation } from '../repository/entities/donation.entity'
 
 @Injectable()
 export class WidgetService {

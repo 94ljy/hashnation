@@ -7,7 +7,11 @@ import base58 from 'bs58'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 import { Repository, Transaction } from 'typeorm'
 import { ConfigService } from '../../config/config.service'
-import { Donation, DonationStatus } from '../../entities/donation.entity'
+import { DonationRepository } from '../../repository/donation.repository'
+import {
+    Donation,
+    DonationStatus,
+} from '../../repository/entities/donation.entity'
 import { UserService } from '../../user/user.service'
 import { WalletService } from '../../wallet/wallet.service'
 import {
@@ -22,7 +26,7 @@ describe('DonationService', () => {
     let eventEmitter: EventEmitter2
     let walletService: WalletService
     let configService: ConfigService
-    let donationRepository: Repository<Donation>
+    let donationRepository: DonationRepository
     let logger: LoggerService
 
     beforeEach(async () => {
@@ -41,7 +45,7 @@ describe('DonationService', () => {
                     useValue: {},
                 },
                 {
-                    provide: getRepositoryToken(Donation),
+                    provide: DonationRepository,
                     useValue: {},
                 },
                 {
@@ -64,9 +68,7 @@ describe('DonationService', () => {
         eventEmitter = module.get<EventEmitter2>(EventEmitter2)
         walletService = module.get<WalletService>(WalletService)
         configService = module.get<ConfigService>(ConfigService)
-        donationRepository = module.get<Repository<Donation>>(
-            getRepositoryToken(Donation),
-        )
+        donationRepository = module.get<DonationRepository>(DonationRepository)
 
         logger = module.get<LoggerService>(WINSTON_MODULE_NEST_PROVIDER)
     })
@@ -142,7 +144,7 @@ describe('DonationService', () => {
             userService.getUserByUsername = jest.fn().mockResolvedValue({})
             walletService.hasWalletAddress = jest.fn().mockResolvedValue(true)
 
-            donationRepository.save = jest.fn().mockResolvedValue({})
+            donationRepository.createDonation = jest.fn().mockResolvedValue({})
 
             donorService.sendRawTransaction = jest
                 .fn()
@@ -153,7 +155,9 @@ describe('DonationService', () => {
                 },
             })
 
-            donationRepository.update = jest.fn().mockResolvedValue({})
+            donationRepository.updateDonationStatus = jest
+                .fn()
+                .mockResolvedValue({})
 
             eventEmitter.emit = jest.fn().mockReturnValue(true)
 
@@ -181,18 +185,19 @@ describe('DonationService', () => {
             expect(userService.getUserByUsername).toBeCalledTimes(1)
             expect(walletService.hasWalletAddress).toBeCalledTimes(1)
 
-            expect(donationRepository.save).toBeCalledTimes(1)
+            expect(donationRepository.createDonation).toBeCalledTimes(1)
 
             expect(mockTransaction.serialize).toBeCalledTimes(1)
 
             expect(donorService.sendRawTransaction).toBeCalledTimes(1)
             expect(donorService.confirmTransaction).toBeCalledWith(signature)
 
-            expect(donationRepository.update).toBeCalledTimes(1)
+            expect(donationRepository.updateDonationStatus).toBeCalledTimes(1)
 
-            expect(donationRepository.update).toBeCalledWith(undefined, {
-                status: DonationStatus.APPROVED,
-            })
+            expect(donationRepository.updateDonationStatus).toBeCalledWith(
+                undefined,
+                DonationStatus.APPROVED,
+            )
 
             expect(eventEmitter.emit).toBeCalledTimes(1)
 
@@ -233,10 +238,11 @@ describe('DonationService', () => {
 
             await donorService.donate(toUsername, rawTransaction, message)
 
-            expect(donationRepository.update).toBeCalledTimes(1)
-            expect(donationRepository.update).toBeCalledWith(undefined, {
-                status: DonationStatus.REJECTED,
-            })
+            expect(donationRepository.updateDonationStatus).toBeCalledTimes(1)
+            expect(donationRepository.updateDonationStatus).toBeCalledWith(
+                undefined,
+                DonationStatus.REJECTED,
+            )
         })
     })
 

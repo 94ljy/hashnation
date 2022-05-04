@@ -9,7 +9,7 @@ import {
 import { Server, Socket } from 'socket.io'
 import { UserService } from '../user/user.service'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
-import { Donation } from '../entities/donation.entity'
+import { Donation } from '../repository/entities/donation.entity'
 import {
     WIDGET_DONATE_EVENT,
     WIDGET_PAUSE_EVENT,

@@ -3,14 +3,18 @@ import { EventEmitter2 } from '@nestjs/event-emitter'
 import { Test, TestingModule } from '@nestjs/testing'
 import { getRepositoryToken } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { Donation, DonationStatus } from '../../entities/donation.entity'
+import {
+    Donation,
+    DonationStatus,
+} from '../../repository/entities/donation.entity'
 import { WIDGET_DONATE_EVENT } from '../../event/event'
 import { DonationService } from './donation.service'
+import { DonationRepository } from '../../repository/donation.repository'
 
 describe('DonationService', () => {
     let donationService: DonationService
     let eventEmitter: EventEmitter2
-    let donationRepository: Repository<Donation>
+    let donationRepository: DonationRepository
 
     beforeEach(async () => {
         const module: TestingModule = await Test.createTestingModule({
@@ -20,7 +24,7 @@ describe('DonationService', () => {
                     useValue: {},
                 },
                 {
-                    provide: getRepositoryToken(Donation),
+                    provide: DonationRepository,
                     useValue: {},
                 },
                 DonationService,
@@ -29,9 +33,7 @@ describe('DonationService', () => {
 
         donationService = module.get<DonationService>(DonationService)
         eventEmitter = module.get(EventEmitter2)
-        donationRepository = module.get<Repository<Donation>>(
-            getRepositoryToken(Donation),
-        )
+        donationRepository = module.get<DonationRepository>(DonationRepository)
     })
 
     describe('getDonations', () => {
@@ -66,13 +68,15 @@ describe('DonationService', () => {
             donation.id = '0000-0000-0000-0000'
             donation.status = DonationStatus.APPROVED
 
-            donationRepository.findOne = jest.fn().mockResolvedValue(donation)
+            donationRepository.findOneByDonationId = jest
+                .fn()
+                .mockResolvedValue(donation)
 
             eventEmitter.emit = jest.fn().mockReturnValue(true)
 
             await donationService.replayDonation('', '')
 
-            expect(donationRepository.findOne).toBeCalledTimes(1)
+            expect(donationRepository.findOneByDonationId).toBeCalledTimes(1)
 
             expect(eventEmitter.emit).toBeCalledTimes(1)
 
@@ -83,7 +87,9 @@ describe('DonationService', () => {
         })
 
         it('donation replay not found', async () => {
-            donationRepository.findOne = jest.fn().mockResolvedValue(undefined)
+            donationRepository.findOneByDonationId = jest
+                .fn()
+                .mockResolvedValue(undefined)
 
             const rejects = expect(
                 donationService.replayDonation('', ''),
@@ -92,7 +98,7 @@ describe('DonationService', () => {
             await rejects.toThrowError(BadRequestException)
             await rejects.toThrow('Donation not found')
 
-            expect(donationRepository.findOne).toBeCalledTimes(1)
+            expect(donationRepository.findOneByDonationId).toBeCalledTimes(1)
         })
 
         it('donation replay not approved', async () => {
@@ -100,7 +106,9 @@ describe('DonationService', () => {
             donation.id = '0000-0000-0000-0000'
             donation.status = DonationStatus.REJECTED
 
-            donationRepository.findOne = jest.fn().mockResolvedValue(donation)
+            donationRepository.findOneByDonationId = jest
+                .fn()
+                .mockResolvedValue(donation)
 
             const rejects = expect(
                 donationService.replayDonation('', ''),
@@ -110,7 +118,7 @@ describe('DonationService', () => {
 
             await rejects.toThrow('Donation is not approved')
 
-            expect(donationRepository.findOne).toBeCalledTimes(1)
+            expect(donationRepository.findOneByDonationId).toBeCalledTimes(1)
         })
     })
 })

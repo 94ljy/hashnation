@@ -4,7 +4,8 @@ import { PublicKey } from '@solana/web3.js'
 import base58 from 'bs58'
 import nacl from 'tweetnacl'
 import { Repository } from 'typeorm'
-import { UserWallet } from '../entities/wallet.entity'
+import { Wallet } from '../repository/entities/wallet.entity'
+import { WalletRepository } from '../repository/wallet.repository'
 import { UserService } from '../user/user.service'
 
 export const CREATE_USER_WALLSET_MESSAGE = new TextEncoder().encode(
@@ -15,8 +16,7 @@ export const CREATE_USER_WALLSET_MESSAGE = new TextEncoder().encode(
 export class WalletService {
     constructor(
         private readonly userService: UserService,
-        @InjectRepository(UserWallet)
-        private readonly userWalletRepository: Repository<UserWallet>,
+        private readonly walletRepository: WalletRepository,
     ) {}
 
     async createWallet(
@@ -51,46 +51,38 @@ export class WalletService {
             throw new BadRequestException('User already has a wallet')
         }
 
-        const userWallet = new UserWallet()
+        const userWallet = new Wallet()
         userWallet.user = user
         userWallet.address = walletAddress
 
-        return await this.userWalletRepository.save(userWallet)
+        return await this.walletRepository.createWallet(userWallet)
     }
 
     async getUserWallet(userId: string) {
-        return this.userWalletRepository.find({ userId })
+        return this.walletRepository.findWalletByUserId(userId)
     }
 
-    // async getUserWalletByUsername(username: string) {
-    //     return this.userWalletRepository.find({
-    //         where: {
-    //             user: {
-    //                 username,
-    //             },
-    //         },
-    //     })
-    // }
-
     async hasWalletAddress(userId: string, walletAddress: string) {
-        const userWallet = await this.userWalletRepository.findOne({
+        const wallet = await this.walletRepository.findWalletByAddress(
             userId,
-            address: walletAddress,
-        })
+            walletAddress,
+        )
 
-        return !!userWallet
+        return !!wallet
     }
 
     async deleteUserWallet(userId: string, walletId: string) {
-        const userWallet = await this.userWalletRepository.findOne({
+        // this.walletRepository.findWalletByAddress(userId, walletId)
+        const userWallet = await this.walletRepository.findWalletByWalletId(
             userId,
-            id: walletId,
-        })
+            walletId,
+        )
 
         if (!userWallet) throw new BadRequestException('Wallet not found')
 
-        userWallet.deletedAt = new Date()
-
-        return await this.userWalletRepository.save(userWallet)
+        return await this.walletRepository.updateWalletDeletedAt(
+            userWallet.id,
+            new Date(),
+        )
     }
 }

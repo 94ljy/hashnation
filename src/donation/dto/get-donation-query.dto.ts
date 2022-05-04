@@ -1,5 +1,5 @@
 import { IsNumber, Max, Min } from 'class-validator'
-import { DonationStatus } from '../../entities/donation.entity'
+import { DonationStatus } from '../../repository/entities/donation.entity'
 
 export class GetDonationQueryDto {
     @Min(1)

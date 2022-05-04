@@ -8,7 +8,7 @@ import {
     UpdateDateColumn,
 } from 'typeorm'
 import * as bcrypt from 'bcrypt'
-import { UserWallet } from './wallet.entity'
+import { Wallet } from './wallet.entity'
 
 @Entity({ name: 'user' })
 export class User {
@@ -61,8 +61,8 @@ export class User {
     @Column({ nullable: false, name: 'is_active' })
     isActive: boolean
 
-    @OneToMany(() => UserWallet, (wallet) => wallet.user)
-    wallets: UserWallet[]
+    @OneToMany(() => Wallet, (wallet) => wallet.user)
+    wallets: Wallet[]
 
     async setPassword(password: string) {
         this.password = await bcrypt.hash(password, 10)

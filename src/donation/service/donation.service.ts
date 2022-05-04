@@ -3,15 +3,18 @@ import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
 import { Repository } from 'typeorm'
-import { Donation, DonationStatus } from '../../entities/donation.entity'
+import {
+    Donation,
+    DonationStatus,
+} from '../../repository/entities/donation.entity'
 import { WIDGET_DONATE_EVENT } from '../../event/event'
+import { DonationRepository } from '../../repository/donation.repository'
 
 @Injectable()
 export class DonationService {
     constructor(
         private readonly eventEmitter: EventEmitter2,
-        @InjectRepository(Donation)
-        private readonly donationRepository: Repository<Donation>,
+        private readonly donationRepository: DonationRepository,
     ) {}
 
     async getDonations(
@@ -19,23 +22,14 @@ export class DonationService {
         page: number,
         limit: number,
     ): Promise<[Donation[], number]> {
-        return this.donationRepository.findAndCount({
-            where: { toUserId: userId },
-            skip: (page - 1) * limit,
-            take: limit,
-            order: {
-                createdAt: 'DESC',
-            },
-        })
+        return this.donationRepository.findAndCount(userId, page, limit)
     }
 
     async replayDonation(userId: string, donationId: string) {
-        const donation = await this.donationRepository.findOne({
-            where: {
-                id: donationId,
-                toUserId: userId,
-            },
-        })
+        const donation = await this.donationRepository.findOneByDonationId(
+            userId,
+            donationId,
+        )
 
         if (!donation) throw new BadRequestException('Donation not found')
 

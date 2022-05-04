@@ -8,7 +8,6 @@ import { UserInfoDto } from './dto/user-info.dto'
 
 @Controller('user')
 export class UserController {
-    private readonly logger2 = new Logger(UserController.name)
     constructor(
         private readonly userService: UserService,
         @Inject(WINSTON_MODULE_NEST_PROVIDER)

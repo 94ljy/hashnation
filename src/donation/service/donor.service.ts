@@ -6,7 +6,10 @@ import {
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
-import { Donation, DonationStatus } from '../../entities/donation.entity'
+import {
+    Donation,
+    DonationStatus,
+} from '../../repository/entities/donation.entity'
 import {
     clusterApiUrl,
     Connection,
@@ -22,6 +25,7 @@ import { EventEmitter2 } from '@nestjs/event-emitter'
 import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 import { ConfigService } from '../../config/config.service'
 import { WIDGET_DONATE_EVENT } from '../../event/event'
+import { DonationRepository } from '../../repository/donation.repository'
 
 export const TRANSFER_INSTRUCTION_INDEX = 2
 
@@ -37,11 +41,12 @@ export class DonorService {
         private readonly eventEmitter: EventEmitter2,
         private readonly userService: UserService,
         private readonly walletService: WalletService,
-        @InjectRepository(Donation)
-        private readonly donationRepository: Repository<Donation>,
+        // @InjectRepository(Donation)
+        // private readonly donationRepository: Repository<Donation>,
         private readonly configService: ConfigService,
         @Inject(WINSTON_MODULE_NEST_PROVIDER)
         private readonly logger: LoggerService,
+        private readonly donationRepository: DonationRepository,
     ) {
         this.solanaConn = new Connection(
             clusterApiUrl(this.configService.get('SOLANA_CLUSTER') as Cluster),
@@ -147,7 +152,7 @@ export class DonorService {
         donation.status = DonationStatus.PENDING
         donation.lamports = lamports
 
-        await this.donationRepository.save(donation)
+        await this.donationRepository.createDonation(donation)
 
         const tx = await this.sendRawTransaction(transaction.serialize())
 
@@ -156,13 +161,15 @@ export class DonorService {
         if (result.value.err) {
             this.logger.error(`tx:${tx} Transaction failed ${result.value.err}`)
 
-            await this.donationRepository.update(donation.id, {
-                status: DonationStatus.REJECTED,
-            })
+            await this.donationRepository.updateDonationStatus(
+                donation.id,
+                DonationStatus.REJECTED,
+            )
         } else {
-            await this.donationRepository.update(donation.id, {
-                status: DonationStatus.APPROVED,
-            })
+            await this.donationRepository.updateDonationStatus(
+                donation.id,
+                DonationStatus.APPROVED,
+            )
 
             this.eventEmitter.emit(WIDGET_DONATE_EVENT, donation)
         }
