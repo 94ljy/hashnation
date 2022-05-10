@@ -1,24 +1,19 @@
 import {
     BadRequestException,
-    Inject,
     Injectable,
     InternalServerErrorException,
-    LoggerService,
 } from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
 import { User } from '../repository/entities/user.entity'
-import { Repository } from 'typeorm'
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 import { ConfigService } from '../config/config.service'
 import { UserRepository } from '../repository/user.repository'
+import { AppLogger } from '../logger/logger.service'
 
 @Injectable()
 export class UserService {
     serverUrl: string
     constructor(
         private readonly configService: ConfigService,
-        @Inject(WINSTON_MODULE_NEST_PROVIDER)
-        private readonly logger: LoggerService,
+        private readonly logger: AppLogger,
         private readonly userRepository: UserRepository,
     ) {
         this.serverUrl = this.configService.get('SERVER_URL') as string

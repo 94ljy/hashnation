@@ -14,11 +14,11 @@ export class GetDonationQueryDto {
 class DonationInfo {
     id: string
     createdAt: Date
-    txSignature: string
+    txHash: string
     fromAddress: string
     toAddress: string
     message: string
-    lamports: number
+    amount: number
     status: DonationStatus
 }
 

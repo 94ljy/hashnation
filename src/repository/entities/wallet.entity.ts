@@ -9,11 +9,15 @@ import {
     PrimaryGeneratedColumn,
     UpdateDateColumn,
 } from 'typeorm'
+import { CURRENCY_TYPE } from '../../common/currency'
 import { User } from './user.entity'
 
 // export type walletType = 'sol'
 
-@Index()
+// export enum WalletType {
+//     SOL = 'sol',
+// }
+
 @Entity({ name: 'wallet' })
 export class Wallet {
     @PrimaryGeneratedColumn('uuid', { name: 'id' })
@@ -30,12 +34,14 @@ export class Wallet {
     @DeleteDateColumn({ name: 'deleted_at' })
     public deletedAt?: Date | null
 
-    // @Column()
-    // public type: walletType
+    @Column({ name: 'currency', nullable: false })
+    public currency: CURRENCY_TYPE
 
-    @Index()
     @Column({ nullable: false, name: 'address' })
     public address: string
+
+    @Column({ nullable: false, name: 'description' })
+    public description: string
 
     @Column({ nullable: false, name: 'user_id' })
     public userId: string

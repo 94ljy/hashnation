@@ -1,30 +1,35 @@
-import { Inject, Injectable, LoggerService } from '@nestjs/common'
+import { Injectable } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
+import {
+    WIDGET_DONATE_EVENT,
+    WIDGET_PAUSE_EVENT,
+    WIDGET_PLAY_EVENT,
+    WIDGET_SKIP_EVENT,
+} from '../event/event'
+import { AppLogger } from '../logger/logger.service'
 import { Donation } from '../repository/entities/donation.entity'
 
 @Injectable()
 export class WidgetService {
     constructor(
         private readonly eventEmitter: EventEmitter2,
-        @Inject(WINSTON_MODULE_NEST_PROVIDER)
-        private readonly logger: LoggerService,
+        private readonly logger: AppLogger,
     ) {}
 
     async widgetPause(userId: string) {
         this.logger.log(`User ${userId} paused the widget`)
-        this.eventEmitter.emit('widget.pause', userId)
+        this.eventEmitter.emit(WIDGET_PAUSE_EVENT, userId)
     }
 
     async widgetPlay(userId: string) {
         this.logger.log(`User ${userId} played the widget`)
-        this.eventEmitter.emit('widget.play', userId)
+        this.eventEmitter.emit(WIDGET_PLAY_EVENT, userId)
     }
 
     async widgetSkip(userId: string) {
         this.logger.log(`User ${userId} skipped the widget`)
-        this.eventEmitter.emit('widget.skip', userId)
+        this.eventEmitter.emit(WIDGET_SKIP_EVENT, userId)
     }
 
     widgetDonationTest(userId: string) {
@@ -32,8 +37,8 @@ export class WidgetService {
         donation.toUserId = userId
         donation.fromAddress = '0x0000000000000000000000000000000000000000'
         donation.message = 'test donation'
-        donation.lamports = LAMPORTS_PER_SOL
+        donation.amount = LAMPORTS_PER_SOL
 
-        this.eventEmitter.emit('widget.donate', donation)
+        this.eventEmitter.emit(WIDGET_DONATE_EVENT, donation)
     }
 }

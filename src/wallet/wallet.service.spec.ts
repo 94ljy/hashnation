@@ -6,6 +6,7 @@ import base58 from 'bs58'
 import { randomUUID } from 'crypto'
 import nacl from 'tweetnacl'
 import { Repository } from 'typeorm'
+import { CURRENCY_TYPE } from '../common/currency'
 import { Wallet } from '../repository/entities/wallet.entity'
 import { WalletRepository } from '../repository/wallet.repository'
 import { UserService } from '../user/user.service'
@@ -53,15 +54,20 @@ describe('WalletService', () => {
 
             walletService.getUserWallet = jest.fn().mockResolvedValue([])
 
+            walletService.isValidateSignature = jest.fn().mockReturnValue(true)
+
             userWalletRepository.createWallet = jest
                 .fn()
                 .mockResolvedValue(null)
 
             await walletService.createWallet(
                 userId,
+                CURRENCY_TYPE.SOL,
                 publicKey.toString(),
                 signature,
             )
+
+            expect(walletService.isValidateSignature).toBeCalledTimes(1)
 
             expect(walletService.getUserWallet).toBeCalledTimes(1)
             expect(walletService.getUserWallet).toBeCalledWith(userId)
@@ -69,9 +75,9 @@ describe('WalletService', () => {
             expect(userWalletRepository.createWallet).toBeCalledTimes(1)
             expect(userWalletRepository.createWallet).toBeCalledWith({
                 address: publicKey.toString(),
-                user: {
-                    id: userId,
-                },
+                currency: CURRENCY_TYPE.SOL,
+                userId: userId,
+                description: '',
             })
         })
 
@@ -83,66 +89,54 @@ describe('WalletService', () => {
             walletService.getUserWallet = jest.fn().mockResolvedValue([
                 {
                     address: publicKey.toString(),
+                    currency: CURRENCY_TYPE.SOL,
                 },
             ])
 
+            userWalletRepository.createWallet = jest.fn().mockResolvedValue({
+                id: 'qwer',
+                address: publicKey.toString(),
+                currency: CURRENCY_TYPE.SOL,
+            })
+
             await expect(
                 walletService.createWallet(
                     userId,
+                    CURRENCY_TYPE.SOL,
                     publicKey.toString(),
                     signature,
                 ),
             ).rejects.toThrowError(BadRequestException)
         })
 
-        it('invalide public key', async () => {
-            userService.getUserById = jest.fn().mockResolvedValue({
-                id: userId,
+        describe('isValidateSignature', () => {
+            it('invalide public key', async () => {
+                const result = expect(() =>
+                    walletService.isValidateSignature(
+                        CURRENCY_TYPE.SOL,
+                        'invalid-public-key',
+                        signature,
+                    ),
+                )
+
+                result.toThrowError(BadRequestException)
+
+                result.toThrow('Invalid wallet address')
             })
 
-            await expect(
-                walletService.createWallet(
-                    userId,
-                    'invalid-public-key',
-                    signature,
-                ),
-            ).rejects.toThrowError(BadRequestException)
+            it('invalide signature', async () => {
+                const result = expect(() =>
+                    walletService.isValidateSignature(
+                        CURRENCY_TYPE.SOL,
+                        publicKey.toString(),
+                        'invalid-signature',
+                    ),
+                )
 
-            await expect(
-                walletService.createWallet(
-                    userId,
-                    'invalid-public-key',
-                    signature,
-                ),
-            ).rejects.toThrow('Invalid wallet address')
-        })
+                result.toThrowError(BadRequestException)
 
-        it('invalide signature', async () => {
-            userService.getUserById = jest.fn().mockResolvedValue({
-                id: userId,
+                result.toThrow('Invalid signature')
             })
-
-            walletService.getUserWallet = jest.fn().mockResolvedValue([])
-
-            userWalletRepository.createWallet = jest
-                .fn()
-                .mockResolvedValue(null)
-
-            await expect(
-                walletService.createWallet(
-                    userId,
-                    publicKey.toString(),
-                    'invalid-signature',
-                ),
-            ).rejects.toThrowError(BadRequestException)
-
-            await expect(
-                walletService.createWallet(
-                    userId,
-                    publicKey.toString(),
-                    base58.encode(Buffer.from([1, 2, 3])),
-                ),
-            ).rejects.toThrow('Invalid signature')
         })
     })
 })

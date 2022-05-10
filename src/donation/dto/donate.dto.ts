@@ -1,6 +1,6 @@
 import { IsNotEmpty, IsString, MaxLength } from 'class-validator'
 
-export class DonateDto {
+export class SolDonateDto {
     @IsString()
     @IsNotEmpty()
     toUsername: string
@@ -10,7 +10,6 @@ export class DonateDto {
     rawTransaction: string
 
     @IsString()
-    @IsNotEmpty()
     @MaxLength(50)
     message: string
 }

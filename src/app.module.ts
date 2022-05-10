@@ -13,6 +13,7 @@ import { WinstonModule, utilities } from 'nest-winston'
 import { WidgetModule } from './widget/widget.module'
 
 import { ConfigModule } from './config/config.module'
+import { LoggerModule } from './logger/logger.module'
 
 @Module({
     imports: [
@@ -24,18 +25,7 @@ import { ConfigModule } from './config/config.module'
             logging: true,
             synchronize: true,
         }),
-        WinstonModule.forRoot({
-            transports: [
-                new winston.transports.Console({
-                    level: 'silly',
-                    format: winston.format.combine(
-                        winston.format.timestamp(),
-                        // winston.format.ms(),
-                        utilities.format.nestLike('App', { prettyPrint: true }),
-                    ),
-                }),
-            ],
-        }),
+        LoggerModule,
         AuthModule,
         UserModule,
         WalletModule,

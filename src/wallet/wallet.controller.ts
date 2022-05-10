@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Post } from '@nestjs/common'
 import { AuthenticatedUser } from '../common/authenticated.user'
+import { CURRENCY_TYPE } from '../common/currency'
 import { User } from '../common/user.decorator'
 import {
     AddUserWalletDto,
@@ -16,13 +17,14 @@ import { WalletService } from './wallet.service'
 export class WalletController {
     constructor(private readonly walletService: WalletService) {}
 
-    @Post()
+    @Post('')
     async createWallet(
         @User() user: AuthenticatedUser,
         @Body() addUserWalletDto: AddUserWalletDto,
     ): Promise<AddUserWalletResponseDto> {
         const newWallet = await this.walletService.createWallet(
             user.id,
+            addUserWalletDto.currency,
             addUserWalletDto.address,
             addUserWalletDto.signature,
         )
@@ -56,7 +58,7 @@ export class WalletController {
         )
 
         return {
-            walletId: deletedWallet.id,
+            walletId: deleteUserWalletDto.walletId,
         }
     }
 }

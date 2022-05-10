@@ -1,4 +1,3 @@
-import { Inject, LoggerService } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
 import {
     WebSocketGateway,
@@ -8,7 +7,6 @@ import {
 } from '@nestjs/websockets'
 import { Server, Socket } from 'socket.io'
 import { UserService } from '../user/user.service'
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 import { Donation } from '../repository/entities/donation.entity'
 import {
     WIDGET_DONATE_EVENT,
@@ -16,6 +14,7 @@ import {
     WIDGET_PLAY_EVENT,
     WIDGET_SKIP_EVENT,
 } from '../event/event'
+import { AppLogger } from '../logger/logger.service'
 
 @WebSocketGateway()
 export class WidgetGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -23,8 +22,7 @@ export class WidgetGateway implements OnGatewayConnection, OnGatewayDisconnect {
     server: Server
     constructor(
         private readonly userService: UserService,
-        @Inject(WINSTON_MODULE_NEST_PROVIDER)
-        private readonly logger: LoggerService,
+        private readonly logger: AppLogger,
     ) {}
 
     private getCreatorRoomname(userId: string) {
@@ -49,17 +47,6 @@ export class WidgetGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
             this.logger.log(`client id:${client.id} connected`)
         }
-
-        // 유저 검증 과정은 변경이 필요함 소켓이 연결되기전에 확인
-        // try {
-        //     const user = await this.userService.getUserByUsername(username)
-        //     client.join(this.getCreatorRoomname(user.id))
-
-        //     this.logger.log(`client id:${client.id} connected`)
-        // } catch (e) {
-        //     this.logger.log(`client id:${client.id} failed to connect`)
-        //     client.disconnect()
-        // }
     }
 
     handleDisconnect(client: Socket) {

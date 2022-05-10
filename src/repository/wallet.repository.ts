@@ -1,6 +1,7 @@
-import { AbstractRepository } from 'typeorm'
+import { AbstractRepository, EntityRepository } from 'typeorm'
 import { Wallet } from './entities/wallet.entity'
 
+@EntityRepository(Wallet)
 export class WalletRepository extends AbstractRepository<Wallet> {
     async createWallet(wallet: Wallet): Promise<Wallet> {
         return this.repository.save(wallet)
