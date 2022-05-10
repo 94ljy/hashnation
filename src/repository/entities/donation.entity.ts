@@ -3,9 +3,11 @@ import {
     CreateDateColumn,
     Entity,
     Index,
+    JoinColumn,
     ManyToOne,
     PrimaryGeneratedColumn,
 } from 'typeorm'
+import { CURRENCY_TYPE } from '../../common/currency'
 import { User } from './user.entity'
 
 export enum DonationStatus {
@@ -30,17 +32,20 @@ export class Donation {
     @PrimaryGeneratedColumn('uuid', { name: 'id' })
     id: string
 
-    @CreateDateColumn({ name: 'created_at' })
+    @CreateDateColumn({ nullable: false, name: 'created_at' })
     createdAt: Date
 
-    @Column({
-        type: 'varchar',
-        length: 255,
-        nullable: false,
-        unique: true,
-        name: 'tx_signature',
-    })
-    txSignature: string
+    @Column({ nullable: true, name: 'done_at' })
+    doneAt?: Date
+
+    @Column({ nullable: false, name: 'currency' })
+    currency: CURRENCY_TYPE
+
+    @Column({ nullable: false, name: 'tx_hash' })
+    txHash: string
+
+    @Column({ nullable: false, name: 'amount' })
+    amount: number
 
     @Column({
         type: 'varchar',
@@ -65,30 +70,17 @@ export class Donation {
     message: string
 
     @Column({
-        type: 'integer',
-        nullable: false,
-        name: 'lamports',
-    })
-    lamports: number
-
-    @Column({
-        type: 'integer',
+        type: 'varchar',
         nullable: false,
         default: DonationStatus.PENDING,
         name: 'status',
     })
     status: DonationStatus
 
-    // @Column({
-    //     type: 'boolean',
-    //     nullable: false,
-    //     default: false,
-    // })
-    // isBrodcasted: boolean
-
     @Column({ name: 'to_user_id' })
     toUserId: string
 
     @ManyToOne((type) => User)
+    @JoinColumn({ name: 'to_user_id' })
     toUser: User
 }

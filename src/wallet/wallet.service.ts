@@ -4,6 +4,7 @@ import { PublicKey } from '@solana/web3.js'
 import base58 from 'bs58'
 import nacl from 'tweetnacl'
 import { Repository } from 'typeorm'
+import { CURRENCY_TYPE } from '../common/currency'
 import { Wallet } from '../repository/entities/wallet.entity'
 import { WalletRepository } from '../repository/wallet.repository'
 import { UserService } from '../user/user.service'
@@ -19,8 +20,34 @@ export class WalletService {
         private readonly walletRepository: WalletRepository,
     ) {}
 
+    isValidateSignature(
+        currency: CURRENCY_TYPE,
+        walletAddress: string,
+        signature: string,
+    ) {
+        if (currency === CURRENCY_TYPE.SOL) {
+            try {
+                new PublicKey(base58.decode(walletAddress))
+            } catch (e) {
+                throw new BadRequestException('Invalid wallet address')
+            }
+
+            try {
+                const isValidSignature = nacl.sign.detached.verify(
+                    CREATE_USER_WALLSET_MESSAGE,
+                    base58.decode(signature),
+                    base58.decode(walletAddress),
+                )
+                if (!isValidSignature) throw new Error()
+            } catch (e) {
+                throw new BadRequestException('Invalid signature')
+            }
+        }
+    }
+
     async createWallet(
         userId: string,
+        currency: CURRENCY_TYPE,
         walletAddress: string,
         signature: string,
     ) {
@@ -28,34 +55,24 @@ export class WalletService {
 
         if (!user) throw new BadRequestException('User not found')
 
-        try {
-            new PublicKey(base58.decode(walletAddress))
-        } catch (e) {
-            throw new BadRequestException('Invalid wallet address')
-        }
-
-        try {
-            const isValidSignature = nacl.sign.detached.verify(
-                CREATE_USER_WALLSET_MESSAGE,
-                base58.decode(signature),
-                base58.decode(walletAddress),
-            )
-            if (!isValidSignature) throw new Error()
-        } catch (e) {
-            throw new BadRequestException('Invalid signature')
-        }
+        this.isValidateSignature(currency, walletAddress, signature)
 
         const userWalletList = await this.getUserWallet(userId)
 
-        if (userWalletList.length > 0) {
+        if (
+            userWalletList.find((wallet) => wallet.currency === currency) !==
+            undefined
+        ) {
             throw new BadRequestException('User already has a wallet')
         }
 
-        const userWallet = new Wallet()
-        userWallet.user = user
-        userWallet.address = walletAddress
+        const newWallet = new Wallet()
+        newWallet.currency = currency
+        newWallet.userId = user.id
+        newWallet.address = walletAddress
+        newWallet.description = ''
 
-        return await this.walletRepository.createWallet(userWallet)
+        return await this.walletRepository.createWallet(newWallet)
     }
 
     async getUserWallet(userId: string) {

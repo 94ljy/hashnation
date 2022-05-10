@@ -1,31 +1,7 @@
-import {
-    BadRequestException,
-    Inject,
-    Injectable,
-    LoggerService,
-} from '@nestjs/common'
-import { InjectRepository } from '@nestjs/typeorm'
-import { Repository } from 'typeorm'
-import {
-    Donation,
-    DonationStatus,
-} from '../../repository/entities/donation.entity'
-import {
-    clusterApiUrl,
-    Connection,
-    SystemProgram,
-    Transaction,
-    Cluster,
-} from '@solana/web3.js'
-import base58 from 'bs58'
+import { BadRequestException, Injectable } from '@nestjs/common'
 import { ns64, struct, u32 } from '@solana/buffer-layout'
 import { UserService } from '../../user/user.service'
 import { WalletService } from '../../wallet/wallet.service'
-import { EventEmitter2 } from '@nestjs/event-emitter'
-import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
-import { ConfigService } from '../../config/config.service'
-import { WIDGET_DONATE_EVENT } from '../../event/event'
-import { DonationRepository } from '../../repository/donation.repository'
 
 export const TRANSFER_INSTRUCTION_INDEX = 2
 
@@ -36,22 +12,10 @@ export const TRANSFER_INSTRUCTION = struct<{
 
 @Injectable()
 export class DonorService {
-    private readonly solanaConn: Connection
     constructor(
-        private readonly eventEmitter: EventEmitter2,
         private readonly userService: UserService,
         private readonly walletService: WalletService,
-        // @InjectRepository(Donation)
-        // private readonly donationRepository: Repository<Donation>,
-        private readonly configService: ConfigService,
-        @Inject(WINSTON_MODULE_NEST_PROVIDER)
-        private readonly logger: LoggerService,
-        private readonly donationRepository: DonationRepository,
-    ) {
-        this.solanaConn = new Connection(
-            clusterApiUrl(this.configService.get('SOLANA_CLUSTER') as Cluster),
-        )
-    }
+    ) {}
 
     async getCreatorInfo(username: string) {
         const user = await this.userService.getUserByUsername(username)
@@ -65,118 +29,6 @@ export class DonorService {
             wallets: wallets.map((item) => ({
                 address: item.address,
             })),
-        }
-    }
-
-    verifyTransaction(transaction: Transaction) {
-        if (transaction.signature === null || !transaction.verifySignatures()) {
-            this.logger.error('Transaction signature verification failed')
-            throw new BadRequestException(
-                'Transaction signature verification failed',
-            )
-        }
-
-        // tx validations
-        if (transaction.instructions.length !== 1) {
-            this.logger.error('Invalid number of instructions')
-            throw new BadRequestException('Invalid number of instructions')
-        }
-
-        const instruction = transaction.instructions[0]
-
-        // tx validations
-        if (!SystemProgram.programId.equals(instruction.programId)) {
-            this.logger.error('Invalid programId')
-            throw new BadRequestException('Invalid programId')
-        }
-
-        const parsedData = TRANSFER_INSTRUCTION.decode(instruction.data)
-
-        // tx validations
-        if (parsedData.instruction !== TRANSFER_INSTRUCTION_INDEX) {
-            this.logger.error('Invalid instruction index')
-            throw new BadRequestException('Invalid instruction index')
-        }
-
-        const from = instruction.keys[0]
-        const to = instruction.keys[1]
-
-        return {
-            signature: base58.encode(transaction.signature),
-            from: from.pubkey.toString(),
-            to: to.pubkey.toString(),
-            lamports: parsedData.lamports,
-        }
-    }
-
-    rawTransactionToTransaction(rawTransaction: string) {
-        return Transaction.from(base58.decode(rawTransaction))
-    }
-
-    async sendRawTransaction(rawTransaction: Buffer) {
-        return this.solanaConn.sendRawTransaction(rawTransaction)
-    }
-
-    async confirmTransaction(tx: string) {
-        return this.solanaConn.confirmTransaction(tx)
-    }
-
-    async donate(toUsername: string, rawTransaction: string, message: string) {
-        const transaction = this.rawTransactionToTransaction(rawTransaction)
-        const { signature, from, to, lamports } =
-            this.verifyTransaction(transaction)
-
-        const toUser = await this.userService.getUserByUsername(toUsername)
-
-        if (!toUser)
-            throw new BadRequestException(`User ${toUsername} not found`)
-
-        const hasWallet = await this.walletService.hasWalletAddress(
-            toUser.id,
-            to,
-        )
-
-        if (!hasWallet) {
-            this.logger.error(`User does not have a wallet address ${to}`)
-            throw new BadRequestException(
-                `User does not have a wallet address ${to}`,
-            )
-        }
-
-        const donation = new Donation()
-        donation.txSignature = signature
-        donation.message = message
-        donation.fromAddress = from
-        donation.toAddress = to
-        donation.toUser = toUser
-        donation.status = DonationStatus.PENDING
-        donation.lamports = lamports
-
-        await this.donationRepository.createDonation(donation)
-
-        const tx = await this.sendRawTransaction(transaction.serialize())
-
-        const result = await this.confirmTransaction(tx)
-
-        if (result.value.err) {
-            this.logger.error(`tx:${tx} Transaction failed ${result.value.err}`)
-
-            await this.donationRepository.updateDonationStatus(
-                donation.id,
-                DonationStatus.REJECTED,
-            )
-        } else {
-            await this.donationRepository.updateDonationStatus(
-                donation.id,
-                DonationStatus.APPROVED,
-            )
-
-            this.eventEmitter.emit(WIDGET_DONATE_EVENT, donation)
-        }
-
-        return {
-            err: result.value.err,
-            tx: tx,
         }
     }
 }

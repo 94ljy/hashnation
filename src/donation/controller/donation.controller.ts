@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Param, Post, Query } from '@nestjs/common'
 import { DonationService } from '../service/donation.service'
-import { DonateDto } from '../dto/donate.dto'
+import { SolDonateDto } from '../dto/donate.dto'
 import { DonorService } from '../service/donor.service'
 import { Public } from 'src/auth/guard/auth.guard'
 import { User } from '../../common/user.decorator'
@@ -25,8 +25,6 @@ export class DonationController {
             getDonationQueryDto.limit,
         )
 
-        console.log(typeof getDonationQueryDto.limit)
-
         return {
             page: getDonationQueryDto.page,
             limit: getDonationQueryDto.limit,
@@ -34,11 +32,11 @@ export class DonationController {
             donations: donations.map((donation) => ({
                 id: donation.id,
                 createdAt: donation.createdAt,
-                txSignature: donation.txSignature,
+                txHash: donation.txHash,
                 fromAddress: donation.fromAddress,
                 toAddress: donation.toAddress,
                 message: donation.message,
-                lamports: donation.lamports,
+                amount: donation.amount,
                 status: donation.status,
             })),
         }
