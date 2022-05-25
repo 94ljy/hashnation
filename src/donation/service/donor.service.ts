@@ -22,11 +22,11 @@ export class DonorService {
 
         if (!user) throw new BadRequestException(`User ${username} not found`)
 
-        const wallets = await this.walletService.getUserWallet(user.id)
+        const userWallets = await this.walletService.getUserWallets(user.id)
 
         return {
             username: user.username,
-            wallets: wallets.map((item) => ({
+            wallets: userWallets.wallets.map((item) => ({
                 address: item.address,
             })),
         }

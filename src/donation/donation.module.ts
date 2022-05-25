@@ -6,9 +6,9 @@ import { UserModule } from '../user/user.module'
 import { WalletModule } from '../wallet/wallet.module'
 import { DonorService } from './service/donor.service'
 import { DonorController } from './controller/donor.controller'
-import { DonationRepository } from '../repository/donation.repository'
+import { DonationRepository } from './repository/donation.repository'
 import { SolDonateService } from './service/sol.donate.service'
-import { SolTransferService } from './service/sol.transfer.service'
+import { SolanaConnection } from './service/sol.connection'
 
 @Module({
     imports: [
@@ -21,7 +21,7 @@ import { SolTransferService } from './service/sol.transfer.service'
         DonationService,
         DonorService,
         SolDonateService,
-        SolTransferService,
+        SolanaConnection,
     ],
 })
 export class DonationModule {}

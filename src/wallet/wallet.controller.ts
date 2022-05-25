@@ -39,9 +39,9 @@ export class WalletController {
     async getUserWallet(
         @User() user: AuthenticatedUser,
     ): Promise<UserWalletResponseDto[]> {
-        const userWallet = await this.walletService.getUserWallet(user.id)
+        const userWallets = await this.walletService.getUserWallets(user.id)
 
-        return userWallet.map<UserWalletResponseDto>((wallet) => ({
+        return userWallets.wallets.map<UserWalletResponseDto>((wallet) => ({
             walletId: wallet.id,
             address: wallet.address,
         }))

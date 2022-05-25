@@ -1,14 +1,14 @@
 import { Injectable } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { LAMPORTS_PER_SOL } from '@solana/web3.js'
+import { Donation } from '../donation/domain/donation.entity'
 import {
-    WIDGET_DONATE_EVENT,
     WIDGET_PAUSE_EVENT,
     WIDGET_PLAY_EVENT,
     WIDGET_SKIP_EVENT,
-} from '../event/event'
+} from './event'
 import { AppLogger } from '../logger/logger.service'
-import { Donation } from '../repository/entities/donation.entity'
+import { DonationApprovedEvent } from '../donation/event/donation.approve.event'
 
 @Injectable()
 export class WidgetService {
@@ -38,7 +38,11 @@ export class WidgetService {
         donation.fromAddress = '0x0000000000000000000000000000000000000000'
         donation.message = 'test donation'
         donation.amount = LAMPORTS_PER_SOL
+        donation.approve()
 
-        this.eventEmitter.emit(WIDGET_DONATE_EVENT, donation)
+        this.eventEmitter.emit(
+            DonationApprovedEvent.name,
+            DonationApprovedEvent.from(donation),
+        )
     }
 }

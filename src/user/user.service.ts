@@ -3,9 +3,9 @@ import {
     Injectable,
     InternalServerErrorException,
 } from '@nestjs/common'
-import { User } from '../repository/entities/user.entity'
+import { User } from './domain/user.entity'
 import { ConfigService } from '../config/config.service'
-import { UserRepository } from '../repository/user.repository'
+import { UserRepository } from './repository/user.repository'
 import { AppLogger } from '../logger/logger.service'
 
 @Injectable()
@@ -20,9 +20,9 @@ export class UserService {
     }
 
     async createUser(username: string, password: string, email: string) {
-        const foundUser = this.userRepository.findUserByUsername(username)
+        const foundUser = await this.getUserByUsername(username)
 
-        if (foundUser === null) {
+        if (foundUser !== undefined) {
             throw new BadRequestException(`Username ${username} already exists`)
         }
 
@@ -33,28 +33,32 @@ export class UserService {
         user.isEmailVerified = false
         user.isActive = true
 
-        try {
-            const newUser = await this.userRepository.createUser(user)
-            this.logger.log(`Created user ${username}`)
-            return newUser
-        } catch (err) {
-            this.logger.error(`Error creating user ${username}`)
-            this.logger.error(err)
+        return await this.userRepository
+            .save(user)
+            .then((newUser) => {
+                this.logger.log(`Created user ${newUser.username}`)
+                return newUser
+            })
+            .catch((err) => {
+                this.logger.error(`Error creating user ${username}`)
+                this.logger.error(err)
 
-            throw new InternalServerErrorException('Error creating user')
-        }
+                throw new InternalServerErrorException('Error creating user')
+            })
     }
 
     async getUserById(userId: string): Promise<User | null> {
-        return this.userRepository.findUserById(userId)
+        return (await this.userRepository.findOne(userId)) ?? null
     }
 
     async getUserByUsername(username: string): Promise<User | null> {
-        return this.userRepository.findUserByUsername(username)
+        return (
+            (await this.userRepository.findOne({ where: { username } })) ?? null
+        )
     }
 
     async getUserInfo(userId: string) {
-        const user = await this.userRepository.findUserById(userId)
+        const user = await this.getUserById(userId)
 
         if (!user) throw new BadRequestException(`User ${userId} not found`)
 
@@ -66,7 +70,13 @@ export class UserService {
 
     async updateUserLastLogin(userId: string) {
         try {
-            await this.userRepository.updateUserLastLogin(userId, new Date())
+            const user = await this.getUserById(userId)
+            if (user === null)
+                throw new BadRequestException(`User ${userId} not found`)
+
+            user.updateLastLoginAt()
+
+            await this.userRepository.save(user)
             this.logger.log(`Updated last login for user ${userId}`)
         } catch (err) {
             this.logger.error(`Error updating user ${userId} last login`)

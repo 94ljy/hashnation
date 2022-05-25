@@ -8,7 +8,8 @@ import {
     UpdateDateColumn,
 } from 'typeorm'
 import * as bcrypt from 'bcrypt'
-import { Wallet } from './wallet.entity'
+import { CURRENCY_TYPE } from '../../common/currency'
+import { Wallet } from '../../wallet/domain/wallet.entity'
 
 @Entity({ name: 'user' })
 export class User {
@@ -70,5 +71,9 @@ export class User {
 
     async comparePassword(password: string) {
         return await bcrypt.compare(password, this.password)
+    }
+
+    updateLastLoginAt() {
+        this.lastLoginAt = new Date()
     }
 }

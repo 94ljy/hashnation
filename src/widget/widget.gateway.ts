@@ -7,14 +7,14 @@ import {
 } from '@nestjs/websockets'
 import { Server, Socket } from 'socket.io'
 import { UserService } from '../user/user.service'
-import { Donation } from '../repository/entities/donation.entity'
 import {
-    WIDGET_DONATE_EVENT,
     WIDGET_PAUSE_EVENT,
     WIDGET_PLAY_EVENT,
     WIDGET_SKIP_EVENT,
-} from '../event/event'
+} from './event'
 import { AppLogger } from '../logger/logger.service'
+import { DonationApprovedEvent } from '../donation/event/donation.approve.event'
+import { DonationReplayEvent } from '../donation/event/donation.replay.event'
 
 @WebSocketGateway()
 export class WidgetGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -53,11 +53,17 @@ export class WidgetGateway implements OnGatewayConnection, OnGatewayDisconnect {
         this.logger.log(`client id:${client.id} closed`)
     }
 
-    @OnEvent(WIDGET_DONATE_EVENT)
-    donateEvent(donation: Donation) {
-        // const { toUserId, ...info } = payload
+    // TODO 중복코드 리팩토링이 필요함...
+    @OnEvent(DonationReplayEvent.name)
+    replay(donationReplayEvent: DonationReplayEvent) {
+        const { toUserId, toUser, ...info } = donationReplayEvent.donation
 
-        const { toUserId, toUser, ...info } = donation
+        this.getCreatorRoom(toUserId).emit('donation', info)
+    }
+
+    @OnEvent(DonationApprovedEvent.name)
+    donateEvent(donationApprovedEvent: DonationApprovedEvent) {
+        const { toUserId, toUser, ...info } = donationApprovedEvent.donation
 
         this.getCreatorRoom(toUserId).emit('donation', info)
     }

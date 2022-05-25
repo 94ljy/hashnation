@@ -8,7 +8,7 @@ import {
     PrimaryGeneratedColumn,
 } from 'typeorm'
 import { CURRENCY_TYPE } from '../../common/currency'
-import { User } from './user.entity'
+import { User } from '../../user/domain/user.entity'
 
 export enum DonationStatus {
     PENDING = 'PENDING',
@@ -83,4 +83,38 @@ export class Donation {
     @ManyToOne((type) => User)
     @JoinColumn({ name: 'to_user_id' })
     toUser: User
+
+    public static createPendingDonation(
+        currency: CURRENCY_TYPE,
+        txHash: string,
+        message: string,
+        fromAddress: string,
+        toAddress: string,
+        toUser: User,
+        amount: number,
+    ): Donation {
+        const donation = new Donation()
+        donation.currency = CURRENCY_TYPE.SOL
+        donation.txHash = txHash
+        donation.message = message
+        donation.fromAddress = fromAddress
+        donation.toAddress = toAddress
+        donation.toUser = toUser
+        donation.status = DonationStatus.PENDING
+        donation.amount = amount
+
+        return donation
+    }
+
+    isApprove(): boolean {
+        return this.status === DonationStatus.APPROVED
+    }
+
+    approve(): void {
+        this.status = DonationStatus.APPROVED
+    }
+
+    reject(): void {
+        this.status = DonationStatus.REJECTED
+    }
 }
