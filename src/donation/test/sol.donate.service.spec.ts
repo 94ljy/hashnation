@@ -5,11 +5,12 @@ import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 import { ConfigService } from '../../config/config.service'
 import { AppLogger } from '../../logger/logger.service'
 import { DonationRepository } from '../repository/donation.repository'
-import { DonationStatus } from '../domain/donation.entity'
+import { Donation, DonationStatus } from '../domain/donation.entity'
 import { UserService } from '../../user/user.service'
 import { WalletService } from '../../wallet/wallet.service'
 import { SolanaConnection } from '../service/sol.connection'
 import { SolDonateService } from '../service/sol.donate.service'
+import { DonationCreatedEvent } from '../event/donation.created.event'
 
 describe('SolDonateService', () => {
     let solDonateService: SolDonateService
@@ -64,145 +65,111 @@ describe('SolDonateService', () => {
         configService = module.get<ConfigService>(ConfigService)
         donationRepository = module.get<DonationRepository>(DonationRepository)
         solanaConn = module.get<SolanaConnection>(SolanaConnection)
-
-        logger = module.get<AppLogger>(AppLogger)
+        logger = module.get(AppLogger)
     })
 
-    // it('should be defined', () => {
-    //     expect(solDonateService).toBeDefined()
-    // })
+    describe('donate', () => {
+        const toUsername = 'test-user'
+        const message = 'donation test'
+        const signature = 'signature'
+        const from = '0x0000000000000000000000000000000000000000'
+        const to = '0x0000000000000000000000000000000000000001'
+        const lamports = 10000
 
-    // describe('donate', () => {
-    //     const toUsername = 'testUser'
-    //     const message = 'donation test'
-    //     const signature = 'signature'
-    //     const from = '0x0000000000000000000000000000000000000000'
-    //     const to = '0x0000000000000000000000000000000000000001'
-    //     const lamports = 10000
+        const rawTransaction = '1234'
 
-    //     const rawTransaction = '1234'
+        const mockTransaction = {
+            serialize: jest.fn().mockReturnValue(Buffer.from([1, 2, 3])),
+        }
 
-    //     const mockTransaction = {
-    //         serialize: jest.fn().mockReturnValue(Buffer.from([1, 2, 3])),
-    //     }
+        beforeEach(() => {
+            userService.getUserByUsername = jest.fn().mockResolvedValue({})
 
-    //     beforeEach(() => {
-    //         solDonateService.rawTransactionToTransaction = jest
-    //             .fn()
-    //             .mockReturnValue(mockTransaction)
+            solDonateService.rawTransactionToTransaction = jest
+                .fn()
+                .mockReturnValue({
+                    signature,
+                    from,
+                    to,
+                    lamports,
+                    transaction: mockTransaction,
+                })
 
-    //         solTransferService.unpack = jest.fn().mockReturnValue({
-    //             signature: signature,
-    //             from: from,
-    //             to: to,
-    //             lamports: lamports,
-    //         })
+            walletService.getUserWallets = jest.fn().mockResolvedValue({
+                hasWallet: jest.fn().mockReturnValue(true),
+            })
 
-    //         userService.getUserByUsername = jest.fn().mockResolvedValue({})
-    //         walletService.getUserWallets = jest.fn().mockResolvedValue({
-    //             hasWallet: jest.fn().mockReturnValue(true),
-    //         })
+            donationRepository.save = jest
+                .fn()
+                .mockResolvedValue(new Donation())
 
-    //         donationRepository.save = jest.fn().mockResolvedValue({})
+            solanaConn.sendRawTransaction = jest
+                .fn()
+                .mockResolvedValue(signature)
 
-    //         solanaConn.sendRawTransaction = jest
-    //             .fn()
-    //             .mockResolvedValue(signature)
+            solanaConn.confirmTransaction = jest.fn().mockResolvedValue({
+                value: {
+                    err: null,
+                },
+            })
 
-    //         solanaConn.confirmTransaction = jest.fn().mockResolvedValue({
-    //             value: {
-    //                 err: null,
-    //             },
-    //         })
+            eventEmitter.emit = jest.fn().mockReturnValue(true)
+            eventEmitter.emitAsync = jest.fn().mockResolvedValue([])
 
-    //         donationRepository.save = jest.fn().mockResolvedValue({})
+            logger.error = jest.fn().mockReturnValue(true)
+        })
 
-    //         eventEmitter.emit = jest.fn().mockReturnValue(true)
+        it('donate fail username not found', async () => {
+            userService.getUserByUsername = jest.fn().mockResolvedValue(null)
 
-    //         logger.error = jest.fn().mockReturnValue(true)
-    //     })
+            await expect(
+                solDonateService.donate(toUsername, rawTransaction, message),
+            ).rejects.toThrow(`User ${toUsername} not found`)
+        })
 
-    //     it('donate successfully', async () => {
-    //         // init
+        it('donate fail invalid raw transaction', async () => {
+            solDonateService.rawTransactionToTransaction = jest
+                .fn()
+                .mockImplementation(() => {
+                    throw new Error('invalid raw transaction')
+                })
 
-    //         // run
-    //         const result = await solDonateService.donate(
-    //             toUsername,
-    //             rawTransaction,
-    //             message,
-    //         )
+            await expect(
+                solDonateService.donate(
+                    toUsername,
+                    'invalide transcation',
+                    message,
+                ),
+            ).rejects.toThrow('invalid raw transaction')
+        })
 
-    //         // verify
-    //         expect(
-    //             solDonateService.rawTransactionToTransaction,
-    //         ).toBeCalledTimes(1)
-    //         expect(solDonateService.rawTransactionToTransaction).toBeCalledWith(
-    //             rawTransaction,
-    //         )
+        it('donate fail user wallet not found', async () => {
+            walletService.getUserWallets = jest.fn().mockResolvedValue({
+                hasWallet: jest.fn().mockReturnValue(false),
+            })
 
-    //         expect(solTransferService.unpack).toBeCalledTimes(1)
+            await expect(
+                solDonateService.donate(toUsername, rawTransaction, message),
+            ).rejects.toThrow(`User does not have a wallet address ${to}`)
+        })
 
-    //         expect(userService.getUserByUsername).toBeCalledTimes(1)
-    //         expect(walletService.hasWalletAddress).toBeCalledTimes(1)
+        it('donate success', async () => {
+            await expect(
+                solDonateService.donate(toUsername, rawTransaction, message),
+            ).resolves.not.toThrow()
+        })
 
-    //         expect(donationRepository.createDonation).toBeCalledTimes(1)
+        it('donate success and event check', async () => {
+            await expect(
+                solDonateService.donate(toUsername, rawTransaction, message),
+            ).resolves.not.toThrow()
 
-    //         expect(mockTransaction.serialize).toBeCalledTimes(1)
-
-    //         expect(solanaConn.sendRawTransaction).toBeCalledTimes(1)
-    //         expect(solanaConn.confirmTransaction).toBeCalledWith(signature)
-
-    //         expect(donationRepository.updateDonationStatus).toBeCalledTimes(1)
-
-    //         expect(donationRepository.updateDonationStatus).toBeCalledWith(
-    //             undefined,
-    //             DonationStatus.APPROVED,
-    //         )
-
-    //         expect(eventEmitter.emit).toBeCalledTimes(1)
-
-    //         expect(result).toEqual({
-    //             err: null,
-    //             tx: signature,
-    //         })
-    //     })
-
-    //     it('donate failed toUser not found', async () => {
-    //         userService.getUserByUsername = jest.fn().mockResolvedValue(null)
-
-    //         const rejects = expect(
-    //             solDonateService.donate(toUsername, rawTransaction, message),
-    //         ).rejects
-
-    //         await rejects.toThrowError(BadRequestException)
-    //         await rejects.toThrow(`User ${toUsername} not found`)
-    //     })
-
-    //     it('donate failed toUser has no wallet', async () => {
-    //         walletService.hasWalletAddress = jest.fn().mockResolvedValue(false)
-
-    //         const rejects = expect(
-    //             solDonateService.donate(toUsername, rawTransaction, message),
-    //         ).rejects
-
-    //         await rejects.toThrowError(BadRequestException)
-    //         await rejects.toThrow(`User does not have a wallet address ${to}`)
-    //     })
-
-    //     it('donate failed tx reject', async () => {
-    //         solanaConn.confirmTransaction = jest.fn().mockResolvedValue({
-    //             value: {
-    //                 err: 'failed',
-    //             },
-    //         })
-
-    //         await solDonateService.donate(toUsername, rawTransaction, message)
-
-    //         expect(donationRepository.updateDonationStatus).toBeCalledTimes(1)
-    //         expect(donationRepository.updateDonationStatus).toBeCalledWith(
-    //             undefined,
-    //             DonationStatus.REJECTED,
-    //         )
-    //     })
-    // })
+            expect(eventEmitter.emitAsync).toBeCalledTimes(2)
+            expect(eventEmitter.emitAsync).toHaveBeenNthCalledWith(
+                1,
+                DonationCreatedEvent.name,
+                expect.anything(),
+            )
+        })
+    })
 })
