@@ -68,21 +68,30 @@ export class Wallet {
     validate(signature: string) {
         if (this.currency === CURRENCY_TYPE.SOL) {
             try {
-                new PublicKey(base58.decode(this.address))
-            } catch (e) {
-                throw new BadRequestException('Invalid wallet address')
-            }
+                const pub = new PublicKey(this.address)
 
-            try {
                 const isValidSignature = nacl.sign.detached.verify(
                     CREATE_USER_WALLSET_MESSAGE,
                     base58.decode(signature),
-                    base58.decode(this.address),
+                    pub.toBuffer(),
                 )
                 if (!isValidSignature) throw new Error()
             } catch (e) {
-                throw new BadRequestException('Invalid signature')
+                throw new Error('Invalid signature')
             }
+
+            // try {
+            //     const isValidSignature = nacl.sign.detached.verify(
+            //         CREATE_USER_WALLSET_MESSAGE,
+            //         base58.decode(signature),
+            //         base58.decode(this.address),
+            //     )
+            //     if (!isValidSignature) throw new Error()
+            // } catch (e) {
+            //     throw new BadRequestException('Invalid signature')
+            // }
+        } else {
+            throw new Error('Invalid currency')
         }
     }
 
