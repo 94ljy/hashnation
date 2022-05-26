@@ -8,10 +8,6 @@ import { WalletRepository } from './repository/wallet.repository'
 import { UserService } from '../user/user.service'
 import { UserWallets } from './domain/user.wallet'
 
-export const CREATE_USER_WALLSET_MESSAGE = new TextEncoder().encode(
-    'Approve Add Wallet',
-)
-
 @Injectable()
 export class WalletService {
     constructor(
